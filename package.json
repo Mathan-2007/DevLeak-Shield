@@ -29,23 +29,61 @@
     "menus": {
       "editor/context": [
         {
-          "command": "devLeakShield.showSecurityDashboard",
+          "command": "devLeakShield.secureCopy",
           "when": "editorTextFocus",
-          "group": "navigation"
+          "group": "devLeakShield@1"
+        },
+        {
+          "command": "devLeakShield.encryptSelection",
+          "when": "editorHasSelection",
+          "group": "devLeakShield@2"
         },
         {
           "command": "devLeakShield.decryptSelection",
+          "when": "editorHasSelection",
+          "group": "devLeakShield@3"
+        },
+        {
+          "command": "devLeakShield.toggleSecureCopyMode",
           "when": "editorTextFocus",
-          "group": "navigation"
+          "group": "devLeakShield@4"
+        },
+        {
+          "command": "devLeakShield.toggleAiMode",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@5"
+        },
+        {
+          "command": "devLeakShield.showSecurityDashboard",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@6"
+        },
+        {
+          "command": "devLeakShield.generateSecurityReport",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@7"
         },
         {
           "command": "devLeakShield.runPreCommitScan",
           "when": "editorTextFocus",
-          "group": "navigation"
+          "group": "devLeakShield@8"
+        },
+        {
+          "command": "devLeakShield.openVault",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@9"
         }
       ]
     },
     "commands": [
+      {
+        "command": "devLeakShield.secureCopy",
+        "title": "DevLeakShield: Secure Copy"
+      },
+      {
+        "command": "devLeakShield.securePaste",
+        "title": "DevLeakShield: Secure Paste"
+      },
       {
         "command": "devLeakShield.showSecurityDashboard",
         "title": "Show DevLeakShield Dashboard"
@@ -86,7 +124,17 @@
         "command": "devleakshield.smartPaste",
         "title": "DevLeakShield: Smart Paste"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "DevLeakShield",
+      "properties": {
+        "devLeakShield.policies": {
+          "type": "array",
+          "default": [],
+          "description": "Policy rules used for secure copy, AI firewall, and Git scanning."
+        }
+      }
+    }
   },
   "scripts": {
     "compile": "tsc -p ./",

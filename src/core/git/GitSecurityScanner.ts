@@ -25,7 +25,8 @@ const execFileAsync = promisify(execFile);
 export class GitSecurityScanner {
   constructor(
     private readonly policyEngine: PolicyEngine,
-    private readonly secretDetectionService: SecretDetectionService
+    private readonly secretDetectionService: SecretDetectionService,
+    private readonly cwd?: string
   ) {}
 
   /**
@@ -40,6 +41,7 @@ export class GitSecurityScanner {
       // Get list of staged files
       const { stdout: stagedFiles } = await execFileAsync("git", ["diff", "--cached", "--name-only"], {
         encoding: "utf8",
+        cwd: this.cwd,
       });
 
       if (!stagedFiles.trim()) {
@@ -58,6 +60,7 @@ export class GitSecurityScanner {
           const { stdout: content } = await execFileAsync("git", ["show", `:${file}`], {
             encoding: "utf8",
             maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+            cwd: this.cwd,
           });
 
           // Detect secrets

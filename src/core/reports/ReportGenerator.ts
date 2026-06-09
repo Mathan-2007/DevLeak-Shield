@@ -5,7 +5,7 @@ export class ReportGenerator {
     const summary = this.buildSummary(findings);
     const payload: ReportPayload = {
       summary,
-      findings,
+      findings: this.redactFindings(findings),
       policyRules,
     };
     return JSON.stringify(payload, null, 2);
@@ -13,7 +13,7 @@ export class ReportGenerator {
 
   generateHtml(findings: SecretFinding[], policyRules: PolicyRule[]): string {
     const summary = this.buildSummary(findings);
-    const rows = findings
+    const rows = this.redactFindings(findings)
       .map((finding) => `
         <tr>
           <td>${finding.category}</td>
@@ -68,5 +68,12 @@ export class ReportGenerator {
       score,
       generatedAt: new Date().toISOString(),
     };
+  }
+
+  private redactFindings(findings: SecretFinding[]): SecretFinding[] {
+    return findings.map((finding) => ({
+      ...finding,
+      value: `[REDACTED ${finding.category}]`,
+    }));
   }
 }

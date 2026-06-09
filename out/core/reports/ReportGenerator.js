@@ -6,14 +6,14 @@ class ReportGenerator {
         const summary = this.buildSummary(findings);
         const payload = {
             summary,
-            findings,
+            findings: this.redactFindings(findings),
             policyRules,
         };
         return JSON.stringify(payload, null, 2);
     }
     generateHtml(findings, policyRules) {
         const summary = this.buildSummary(findings);
-        const rows = findings
+        const rows = this.redactFindings(findings)
             .map((finding) => `
         <tr>
           <td>${finding.category}</td>
@@ -64,6 +64,12 @@ class ReportGenerator {
             score,
             generatedAt: new Date().toISOString(),
         };
+    }
+    redactFindings(findings) {
+        return findings.map((finding) => ({
+            ...finding,
+            value: `[REDACTED ${finding.category}]`,
+        }));
     }
 }
 exports.ReportGenerator = ReportGenerator;

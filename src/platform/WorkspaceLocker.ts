@@ -40,7 +40,10 @@ export class WorkspaceLocker {
    * Lock workspace: Replace secrets with vault tokens
    */
   async lockWorkspace(): Promise<void> {
-    const files = await vscode.workspace.findFiles("**/*.{ts,js,json,md,env,txt}");
+    const files = await vscode.workspace.findFiles(
+      "**/*.{ts,tsx,js,jsx,json,md,env,txt,yml,yaml}",
+      "**/{node_modules,out,dist,build,.git}/**"
+    );
     const lockState: Map<string, { original: string; locked: string }> = new Map();
 
     for (const file of files) {
@@ -90,7 +93,10 @@ export class WorkspaceLocker {
    * Unlock workspace: Restore secrets from vault tokens
    */
   async unlockWorkspace(): Promise<void> {
-    const files = await vscode.workspace.findFiles("**/*.{ts,js,json,md,env,txt}");
+    const files = await vscode.workspace.findFiles(
+      "**/*.{ts,tsx,js,jsx,json,md,env,txt,yml,yaml}",
+      "**/{node_modules,out,dist,build,.git}/**"
+    );
 
     for (const file of files) {
       try {

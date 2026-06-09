@@ -22,9 +22,10 @@ const execFileAsync = (0, util_1.promisify)(child_process_1.execFile);
  * 5. Block if secrets found above threshold
  */
 class GitSecurityScanner {
-    constructor(policyEngine, secretDetectionService) {
+    constructor(policyEngine, secretDetectionService, cwd) {
         this.policyEngine = policyEngine;
         this.secretDetectionService = secretDetectionService;
+        this.cwd = cwd;
     }
     /**
      * Scan staged files for secrets
@@ -34,6 +35,7 @@ class GitSecurityScanner {
             // Get list of staged files
             const { stdout: stagedFiles } = await execFileAsync("git", ["diff", "--cached", "--name-only"], {
                 encoding: "utf8",
+                cwd: this.cwd,
             });
             if (!stagedFiles.trim()) {
                 return { blocked: false, reason: "No staged files", secretsFound: 0 };
@@ -49,6 +51,7 @@ class GitSecurityScanner {
                     const { stdout: content } = await execFileAsync("git", ["show", `:${file}`], {
                         encoding: "utf8",
                         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+                        cwd: this.cwd,
                     });
                     // Detect secrets
                     const result = this.secretDetectionService.detect(content, file);

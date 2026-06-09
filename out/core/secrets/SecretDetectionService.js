@@ -27,6 +27,7 @@ class SecretDetectionService {
     }
     detect(text, filePath) {
         const findings = [];
+        const seenCandidates = new Set();
         for (const rule of REGEX_RULES) {
             const flags = rule.pattern.flags.includes("g")
                 ? rule.pattern.flags
@@ -37,6 +38,10 @@ class SecretDetectionService {
                 const candidate = match[0];
                 if (!candidate)
                     continue;
+                const candidateKey = `${match.index ?? -1}:${candidate}`;
+                if (seenCandidates.has(candidateKey))
+                    continue;
+                seenCandidates.add(candidateKey);
                 const entropyScore = this.calculateEntropy(candidate);
                 const contextScore = this.calculateContextScore(text, match.index ?? 0);
                 const category = this.classifier.classify(candidate);

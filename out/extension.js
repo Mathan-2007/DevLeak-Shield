@@ -10,7 +10,7 @@ const NotificationService_1 = require("./ui/NotificationService");
 const LoggingService_1 = require("./ui/LoggingService");
 let statusBarManager;
 let commandRegistry;
-let clipboardGuard; // Simplified for interception logic
+let clipboardGuard;
 /**
  * DevLeakShield Extension: Production-grade secret protection platform
  *
@@ -39,7 +39,7 @@ async function activate(context) {
         commandRegistry = new CommandRegistry_1.CommandRegistry(context, sessionManager, statusBarManager);
         await commandRegistry.initializeServices();
         commandRegistry.registerCommands();
-        clipboardGuard = commandRegistry.clipboardGuard;
+        clipboardGuard = commandRegistry.getClipboardGuard();
         console.log("DevLeakShield: Commands registered");
         // Set up status bar
         // Status bar items are now created inside CommandRegistry
@@ -55,12 +55,20 @@ async function activate(context) {
         context.subscriptions.push(vscode.commands.registerCommand('devleakshield.smartPaste', async (args) => {
             try {
                 const clipboardText = await vscode.env.clipboard.readText();
+                if (!clipboardGuard) {
+                    await vscode.commands.executeCommand('editor.action.clipboardPasteAction', args);
+                    return;
+                }
                 const pasteResult = await clipboardGuard.pasteService.paste(clipboardText);
+                if (!pasteResult.success) {
+                    NotificationService_1.NotificationService.showError(`Smart Paste blocked: ${pasteResult.reason}`);
+                    return;
+                }
                 if (pasteResult.decryptedCount > 0) {
                     // We handled it, so paste the restored text
                     const editor = vscode.window.activeTextEditor;
                     if (editor) {
-                        editor.edit(editBuilder => {
+                        await editor.edit(editBuilder => {
                             editBuilder.replace(editor.selection, pasteResult.text);
                         });
                         LoggingService_1.LoggingService.log(`Restored ${pasteResult.decryptedCount} secret(s) on paste.`);

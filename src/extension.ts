@@ -7,7 +7,7 @@ import { LoggingService } from "./ui/LoggingService";
 
 let statusBarManager: StatusBarManager | undefined;
 let commandRegistry: CommandRegistry | undefined;
-let clipboardGuard: any; // Simplified for interception logic
+let clipboardGuard: import("./clipboard/ClipboardGuard").ClipboardGuard | undefined;
 /**
  * DevLeakShield Extension: Production-grade secret protection platform
  *
@@ -38,7 +38,7 @@ export async function activate(context: vscode.ExtensionContext) {
     commandRegistry = new CommandRegistry(context, sessionManager, statusBarManager);
     await commandRegistry.initializeServices();
     commandRegistry.registerCommands();
-    clipboardGuard = (commandRegistry as any).clipboardGuard;
+    clipboardGuard = commandRegistry.getClipboardGuard();
     console.log("DevLeakShield: Commands registered");
 
     // Set up status bar
@@ -60,13 +60,23 @@ export async function activate(context: vscode.ExtensionContext) {
       vscode.commands.registerCommand('devleakshield.smartPaste', async (args) => {
         try {
           const clipboardText = await vscode.env.clipboard.readText();
+          if (!clipboardGuard) {
+            await vscode.commands.executeCommand('editor.action.clipboardPasteAction', args);
+            return;
+          }
+
           const pasteResult = await clipboardGuard.pasteService.paste(clipboardText);
+
+          if (!pasteResult.success) {
+            NotificationService.showError(`Smart Paste blocked: ${pasteResult.reason}`);
+            return;
+          }
 
           if (pasteResult.decryptedCount > 0) {
             // We handled it, so paste the restored text
             const editor = vscode.window.activeTextEditor;
             if (editor) {
-              editor.edit(editBuilder => {
+              await editor.edit(editBuilder => {
                 editBuilder.replace(editor.selection, pasteResult.text);
               });
               LoggingService.log(`Restored ${pasteResult.decryptedCount} secret(s) on paste.`);

@@ -11,4 +11,12 @@ describe("SecretDetectionService", () => {
     expect(result.findings[0].category).to.equal("openai");
     expect(result.maxRisk).to.be.greaterThan(0);
   });
+
+  it("should not report the same candidate twice through generic fallback rules", () => {
+    const service = new SecretDetectionService();
+    const result = service.detect("const token = \"sk-1234567890abcdef\";");
+
+    expect(result.findings.filter((finding) => finding.value === "sk-1234567890abcdef"))
+      .to.have.lengthOf(1);
+  });
 });
