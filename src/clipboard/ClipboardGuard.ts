@@ -5,6 +5,8 @@ import { ClipboardAuditService } from "./ClipboardAuditService";
 import { SecureCopyService } from "./SecureCopyService";
 import { SecurePasteService } from "./SecurePasteService";
 import { SecureVault } from "../core/vault/SecureVault";
+import { NotificationService } from "../ui/NotificationService";
+import { LoggingService } from "../ui/LoggingService";
 
 export class ClipboardGuard {
   readonly copyService: SecureCopyService;
@@ -22,8 +24,16 @@ export class ClipboardGuard {
     this.pasteService = new SecurePasteService(this.auditService, this.vault);
   }
 
+  setSecureCopyMode(enabled: boolean): void {
+    this.secureCopyMode = enabled;
+  }
+
   toggleSecureCopyMode(): boolean {
     this.secureCopyMode = !this.secureCopyMode;
+    return this.secureCopyMode;
+  }
+
+  isSecureCopyEnabled(): boolean {
     return this.secureCopyMode;
   }
 
@@ -38,13 +48,13 @@ export class ClipboardGuard {
     const result = await this.copyService.copy(text);
 
     if (result.blocked) {
-      vscode.window.showErrorMessage(`Secure copy blocked: ${result.reason}`);
+      NotificationService.showError(`Secure copy blocked: ${result.reason}`);
       return;
     }
 
     await vscode.env.clipboard.writeText(result.text);
-    vscode.window.showInformationMessage(
-      `DevLeakShield: secure copy completed (${result.secretsProtected} secrets protected, risk=${result.risk.toFixed(2)})`
+    LoggingService.log(
+      `Secure copy: ${result.secretsProtected} secret(s) protected.`
     );
   }
 
@@ -56,12 +66,7 @@ export class ClipboardGuard {
     const result = await this.pasteService.paste(clipboardText);
 
     if (!result.success) {
-      vscode.window.showErrorMessage(`Secure paste blocked: ${result.reason}`);
-      return;
-    }
-
-    if (result.decryptedCount === 0) {
-      vscode.window.showInformationMessage("Clipboard contains no DevLeakShield tokens");
+      NotificationService.showError(`Secure paste blocked: ${result.reason}`);
       return;
     }
 
@@ -72,13 +77,13 @@ export class ClipboardGuard {
       result.text
     );
     await vscode.workspace.applyEdit(edit);
-    vscode.window.showInformationMessage(`DevLeakShield: secure paste completed (${result.decryptedCount} tokens restored)`);
+    LoggingService.log(`Secure paste: ${result.decryptedCount} token(s) restored.`);
   }
-
+  
   async encryptSelection(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.selection.isEmpty) {
-      vscode.window.showErrorMessage("No text selected");
+      NotificationService.showError("No text selected for encryption.");
       return;
     }
 
@@ -86,20 +91,20 @@ export class ClipboardGuard {
     const result = await this.copyService.copy(text);
 
     if (result.blocked) {
-      vscode.window.showErrorMessage(`Encryption blocked: ${result.reason}`);
+      NotificationService.showError(`Encryption blocked: ${result.reason}`);
       return;
     }
 
     const edit = new vscode.WorkspaceEdit();
     edit.replace(editor.document.uri, editor.selection, result.text);
     await vscode.workspace.applyEdit(edit);
-    vscode.window.showInformationMessage(`Encrypted ${result.secretsProtected} secrets in selection`);
+    LoggingService.log(`Encrypted ${result.secretsProtected} secret(s) in selection.`);
   }
 
   async decryptSelection(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.selection.isEmpty) {
-      vscode.window.showErrorMessage("No text selected");
+      NotificationService.showError("No text selected for decryption.");
       return;
     }
 
@@ -107,19 +112,19 @@ export class ClipboardGuard {
     const result = await this.pasteService.paste(text);
 
     if (!result.success) {
-      vscode.window.showErrorMessage(`Decryption blocked: ${result.reason}`);
+      NotificationService.showError(`Decryption blocked: ${result.reason}`);
       return;
     }
 
     if (result.decryptedCount === 0) {
-      vscode.window.showInformationMessage("No DevLeakShield tokens found in selection");
+      LoggingService.log("No DevLeakShield tokens found in selection to decrypt.");
       return;
     }
 
     const edit = new vscode.WorkspaceEdit();
     edit.replace(editor.document.uri, editor.selection, result.text);
     await vscode.workspace.applyEdit(edit);
-    vscode.window.showInformationMessage(`Decrypted ${result.decryptedCount} tokens in selection`);
+    LoggingService.log(`Decrypted ${result.decryptedCount} token(s) in selection.`);
   }
 
   getClipboardAuditSummary() {

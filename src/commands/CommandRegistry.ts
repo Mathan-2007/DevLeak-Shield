@@ -11,17 +11,24 @@ import { StatusBarManager } from "../ui/StatusBarManager";
 import { ClipboardGuard } from "../clipboard/ClipboardGuard";
 import { GitSecurityScanner } from "../core/git/GitSecurityScanner";
 import { PolicyRule } from "../types";
+import { NotificationService } from "../ui/NotificationService";
+import { LoggingService } from "../ui/LoggingService";
 
 export class CommandRegistry {
   private readonly dashboard = new SecurityDashboardService();
   private readonly reportGenerator = new ReportGenerator();
   private readonly secretDetectionService = new SecretDetectionService();
   private policyEngine: PolicyEngine;
-  private clipboardGuard?: ClipboardGuard;
+  private clipboardGuard!: ClipboardGuard;
   private secureVault?: SecureVault;
-  private workspaceLocker?: WorkspaceLocker;
-  private firewall?: AiPromptFirewall;
-  private secureCopyStatusBarItem?: vscode.StatusBarItem;
+  private workspaceLocker!: WorkspaceLocker;
+  private firewall!: AiPromptFirewall;
+
+  private secureCopyStatusBarItem!: vscode.StatusBarItem;
+  private aiModeStatusBarItem!: vscode.StatusBarItem;
+
+  private static readonly SECURE_COPY_STATE_KEY = "devLeakShield.secureCopyState";
+  private static readonly AI_MODE_STATE_KEY = "devLeakShield.aiModeState";
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -62,22 +69,26 @@ export class CommandRegistry {
     this.policyEngine = new PolicyEngine(policies);
     this.firewall = new AiPromptFirewall(this.policyEngine);
     const masterKey = this.sessionManager.getMasterKey();
-    
+
     // Initialize vault and clipboard guard
     this.secureVault = new SecureVault(this.context.secrets, masterKey);
     await this.secureVault.initialize();
-    
+
     this.clipboardGuard = new ClipboardGuard(
       this.policyEngine,
       this.firewall,
       this.secureVault
     );
-    
+
     this.workspaceLocker = new WorkspaceLocker(
       this.context.secrets,
       this.secureVault,
       this.secretDetectionService
     );
+
+    // Restore persisted states
+    const secureCopyState = await this.context.secrets.get(CommandRegistry.SECURE_COPY_STATE_KEY);
+    this.clipboardGuard.setSecureCopyMode(secureCopyState === "true");
   }
 
   registerCommands(): void {
@@ -86,19 +97,28 @@ export class CommandRegistry {
     }
 
     this.secureCopyStatusBarItem = this.statusBarManager.createItem(
-      "DevLeakShield Secure Copy OFF",
+      this.clipboardGuard.isSecureCopyEnabled() ? "🟢 Secure Copy" : "🔴 Secure Copy",
       "devLeakShield.toggleSecureCopyMode",
       vscode.StatusBarAlignment.Left,
       98,
       "Toggle secure copy mode for DevLeakShield."
     );
 
+    this.aiModeStatusBarItem = this.statusBarManager.createItem(
+      "🔴 AI Mode", // Initial state is OFF
+      "devLeakShield.toggleAiMode",
+      vscode.StatusBarAlignment.Left,
+      97,
+      "Toggle AI Mode to mask/unmask secrets in the workspace."
+    );
+    this.context.secrets.get(CommandRegistry.AI_MODE_STATE_KEY).then(state => this.updateAiModeStatus(state === 'true'));
+
     this.context.subscriptions.push(
       vscode.commands.registerCommand("devLeakShield.showSecurityDashboard", async () => {
         const score = this.dashboard.getCurrentScore();
         const vaultSummary = this.secureVault!.getSummary();
         const dashboardMessage = `Security score: ${score} | Vault entries: ${vaultSummary.totalEntries} | Avg risk: ${vaultSummary.averageRiskScore.toFixed(2)}`;
-        vscode.window.showInformationMessage(dashboardMessage);
+        LoggingService.log(dashboardMessage);
       })
     );
 
@@ -138,23 +158,17 @@ export class CommandRegistry {
     this.context.subscriptions.push(
       vscode.commands.registerCommand("devLeakShield.toggleSecureCopyMode", async () => {
         const enabled = this.clipboardGuard!.toggleSecureCopyMode();
-        if (this.secureCopyStatusBarItem) {
-          this.secureCopyStatusBarItem.text = enabled
-            ? "DevLeakShield Secure Copy ON"
-            : "DevLeakShield Secure Copy OFF";
-        }
-        vscode.window.showInformationMessage(`DevLeakShield secure copy ${enabled ? "enabled" : "disabled"}.`);
+        await this.context.secrets.store(CommandRegistry.SECURE_COPY_STATE_KEY, String(enabled));
+        this.secureCopyStatusBarItem.text = enabled ? "🟢 Secure Copy" : "🔴 Secure Copy";
+        LoggingService.log(`Secure Copy ${enabled ? "enabled" : "disabled"}.`);
       })
     );
 
     this.context.subscriptions.push(
       vscode.commands.registerCommand("devLeakShield.toggleAiMode", async () => {
-        try {
-          await this.workspaceLocker!.lockWorkspace();
-          vscode.window.showInformationMessage("AI Mode engaged: workspace secrets masked and stored in vault.");
-        } catch (error) {
-          vscode.window.showErrorMessage(`Failed to lock workspace: ${error instanceof Error ? error.message : String(error)}`);
-        }
+        const currentState = this.aiModeStatusBarItem.text.includes("🟢");
+        const newState = !currentState;
+        this.updateAiModeStatus(newState, true);
       })
     );
 
@@ -164,12 +178,12 @@ export class CommandRegistry {
           const gitScanner = new GitSecurityScanner(this.policyEngine, this.secretDetectionService);
           const result = await gitScanner.scanStagedFiles();
           if (result.blocked) {
-            vscode.window.showErrorMessage(`Pre-commit scan blocked: ${result.reason}`);
+            NotificationService.showError(`Pre-commit scan blocked: ${result.reason}`);
           } else {
-            vscode.window.showInformationMessage(`Pre-commit scan passed. Secrets scanned: ${result.secretsFound}`);
+            LoggingService.log(`Pre-commit scan passed. Secrets scanned: ${result.secretsFound}`);
           }
         } catch (error) {
-          vscode.window.showErrorMessage(`Pre-commit scan failed: ${error instanceof Error ? error.message : String(error)}`);
+          NotificationService.showError(`Pre-commit scan failed: ${error instanceof Error ? error.message : String(error)}`);
         }
       })
     );
@@ -182,9 +196,9 @@ export class CommandRegistry {
           }
           const summary = this.secureVault.getSummary();
           const message = `Vault initialized | Entries: ${summary.totalEntries} | Categories: ${JSON.stringify(summary.entriesByCategory)}`;
-          vscode.window.showInformationMessage(message);
+          LoggingService.log(message);
         } catch (error) {
-          vscode.window.showErrorMessage(`Vault error: ${error instanceof Error ? error.message : String(error)}`);
+          NotificationService.showError(`Vault error: ${error instanceof Error ? error.message : String(error)}`);
         }
       })
     );
@@ -195,14 +209,36 @@ export class CommandRegistry {
           const clipboard = await vscode.env.clipboard.readText();
           const decision = this.firewall!.inspect({ source: "clipboard", text: clipboard });
           if (!decision.allowed) {
-            vscode.window.showErrorMessage(`Clipboard blocked: ${decision.reason}`);
+            NotificationService.showError(`Clipboard blocked: ${decision.reason}`);
           } else {
-            vscode.window.showInformationMessage(`Clipboard safe: risk=${decision.risk.toFixed(2)}`);
+            LoggingService.log(`Clipboard safe: risk=${decision.risk.toFixed(2)}`);
           }
         } catch (error) {
-          vscode.window.showErrorMessage(`Clipboard analysis failed: ${error instanceof Error ? error.message : String(error)}`);
+          NotificationService.showError(`Clipboard analysis failed: ${error instanceof Error ? error.message : String(error)}`);
         }
       })
     );
+  }
+
+  private async updateAiModeStatus(enabled: boolean, fromClick = false) {
+    this.aiModeStatusBarItem.text = enabled ? "🟢 AI Mode" : "🔴 AI Mode";
+    if (fromClick) {
+      await this.context.secrets.store(CommandRegistry.AI_MODE_STATE_KEY, String(enabled));
+      try {
+        if (enabled) {
+          await this.workspaceLocker.lockWorkspace();
+          LoggingService.log("AI Mode engaged: workspace secrets masked.");
+        } else {
+          await this.workspaceLocker.unlockWorkspace();
+          LoggingService.log("AI Mode disengaged: workspace secrets restored.");
+        }
+      } catch (error) {
+        const action = enabled ? 'lock' : 'unlock';
+        NotificationService.showError(`Failed to ${action} workspace: ${error instanceof Error ? error.message : String(error)}`);
+        // Revert UI on failure
+        this.aiModeStatusBarItem.text = !enabled ? "🟢 AI Mode" : "🔴 AI Mode";
+        await this.context.secrets.store(CommandRegistry.AI_MODE_STATE_KEY, String(!enabled));
+      }
+    }
   }
 }

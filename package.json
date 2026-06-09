@@ -16,45 +16,20 @@
   "contributes": {
     "keybindings": [
       {
-        "command": "devLeakShield.analyzeClipboardBeforeCopy",
-        "key": "ctrl+alt+c",
+        "command": "devleakshield.smartCopy",
+        "key": "ctrl+c",
         "when": "editorTextFocus"
       },
       {
-        "command": "devLeakShield.runPreCommitScan",
-        "key": "ctrl+alt+p",
-        "when": "editorTextFocus"
+        "command": "devleakshield.smartPaste",
+        "key": "ctrl+v",
+        "when": "editorTextFocus && !editorReadonly"
       }
     ],
     "menus": {
       "editor/context": [
         {
           "command": "devLeakShield.showSecurityDashboard",
-          "when": "editorTextFocus",
-          "group": "navigation"
-        },
-        {
-          "command": "devLeakShield.toggleAiMode",
-          "when": "editorTextFocus",
-          "group": "navigation"
-        },
-        {
-          "command": "devLeakShield.generateSecurityReport",
-          "when": "editorTextFocus",
-          "group": "navigation"
-        },
-        {
-          "command": "devLeakShield.secureCopy",
-          "when": "editorTextFocus",
-          "group": "navigation"
-        },
-        {
-          "command": "devLeakShield.securePaste",
-          "when": "editorTextFocus",
-          "group": "navigation"
-        },
-        {
-          "command": "devLeakShield.encryptSelection",
           "when": "editorTextFocus",
           "group": "navigation"
         },
@@ -80,24 +55,12 @@
         "title": "Generate Security Report"
       },
       {
-        "command": "devLeakShield.analyzeClipboardBeforeCopy",
-        "title": "Analyze Clipboard Before Copy"
-      },
-      {
-        "command": "devLeakShield.secureCopy",
-        "title": "Secure Copy"
-      },
-      {
-        "command": "devLeakShield.securePaste",
-        "title": "Secure Paste"
-      },
-      {
         "command": "devLeakShield.encryptSelection",
-        "title": "Encrypt Selection"
+        "title": "DevLeakShield: Encrypt Selection"
       },
       {
         "command": "devLeakShield.decryptSelection",
-        "title": "Decrypt Selection"
+        "title": "DevLeakShield: Decrypt Selection"
       },
       {
         "command": "devLeakShield.toggleSecureCopyMode",
@@ -114,6 +77,14 @@
       {
         "command": "devLeakShield.openVault",
         "title": "Initialize Secure Vault"
+      },
+      {
+        "command": "devleakshield.smartCopy",
+        "title": "DevLeakShield: Smart Copy"
+      },
+      {
+        "command": "devleakshield.smartPaste",
+        "title": "DevLeakShield: Smart Paste"
       }
     ]
   },

@@ -5,6 +5,8 @@ const vscode = require("vscode");
 const ClipboardAuditService_1 = require("./ClipboardAuditService");
 const SecureCopyService_1 = require("./SecureCopyService");
 const SecurePasteService_1 = require("./SecurePasteService");
+const NotificationService_1 = require("../ui/NotificationService");
+const LoggingService_1 = require("../ui/LoggingService");
 class ClipboardGuard {
     constructor(policyEngine, firewall, vault) {
         this.policyEngine = policyEngine;
@@ -15,8 +17,14 @@ class ClipboardGuard {
         this.copyService = new SecureCopyService_1.SecureCopyService(policyEngine, firewall, this.auditService, this.vault);
         this.pasteService = new SecurePasteService_1.SecurePasteService(this.auditService, this.vault);
     }
+    setSecureCopyMode(enabled) {
+        this.secureCopyMode = enabled;
+    }
     toggleSecureCopyMode() {
         this.secureCopyMode = !this.secureCopyMode;
+        return this.secureCopyMode;
+    }
+    isSecureCopyEnabled() {
         return this.secureCopyMode;
     }
     async secureCopy() {
@@ -28,11 +36,11 @@ class ClipboardGuard {
             : editor.document.getText(editor.selection);
         const result = await this.copyService.copy(text);
         if (result.blocked) {
-            vscode.window.showErrorMessage(`Secure copy blocked: ${result.reason}`);
+            NotificationService_1.NotificationService.showError(`Secure copy blocked: ${result.reason}`);
             return;
         }
         await vscode.env.clipboard.writeText(result.text);
-        vscode.window.showInformationMessage(`DevLeakShield: secure copy completed (${result.secretsProtected} secrets protected, risk=${result.risk.toFixed(2)})`);
+        LoggingService_1.LoggingService.log(`Secure copy: ${result.secretsProtected} secret(s) protected.`);
     }
     async securePaste() {
         const editor = vscode.window.activeTextEditor;
@@ -41,55 +49,51 @@ class ClipboardGuard {
         const clipboardText = await vscode.env.clipboard.readText();
         const result = await this.pasteService.paste(clipboardText);
         if (!result.success) {
-            vscode.window.showErrorMessage(`Secure paste blocked: ${result.reason}`);
-            return;
-        }
-        if (result.decryptedCount === 0) {
-            vscode.window.showInformationMessage("Clipboard contains no DevLeakShield tokens");
+            NotificationService_1.NotificationService.showError(`Secure paste blocked: ${result.reason}`);
             return;
         }
         const edit = new vscode.WorkspaceEdit();
         edit.replace(editor.document.uri, new vscode.Range(editor.selection.start, editor.selection.end), result.text);
         await vscode.workspace.applyEdit(edit);
-        vscode.window.showInformationMessage(`DevLeakShield: secure paste completed (${result.decryptedCount} tokens restored)`);
+        LoggingService_1.LoggingService.log(`Secure paste: ${result.decryptedCount} token(s) restored.`);
     }
     async encryptSelection() {
         const editor = vscode.window.activeTextEditor;
         if (!editor || editor.selection.isEmpty) {
-            vscode.window.showErrorMessage("No text selected");
+            NotificationService_1.NotificationService.showError("No text selected for encryption.");
             return;
         }
         const text = editor.document.getText(editor.selection);
         const result = await this.copyService.copy(text);
         if (result.blocked) {
-            vscode.window.showErrorMessage(`Encryption blocked: ${result.reason}`);
+            NotificationService_1.NotificationService.showError(`Encryption blocked: ${result.reason}`);
             return;
         }
         const edit = new vscode.WorkspaceEdit();
         edit.replace(editor.document.uri, editor.selection, result.text);
         await vscode.workspace.applyEdit(edit);
-        vscode.window.showInformationMessage(`Encrypted ${result.secretsProtected} secrets in selection`);
+        LoggingService_1.LoggingService.log(`Encrypted ${result.secretsProtected} secret(s) in selection.`);
     }
     async decryptSelection() {
         const editor = vscode.window.activeTextEditor;
         if (!editor || editor.selection.isEmpty) {
-            vscode.window.showErrorMessage("No text selected");
+            NotificationService_1.NotificationService.showError("No text selected for decryption.");
             return;
         }
         const text = editor.document.getText(editor.selection);
         const result = await this.pasteService.paste(text);
         if (!result.success) {
-            vscode.window.showErrorMessage(`Decryption blocked: ${result.reason}`);
+            NotificationService_1.NotificationService.showError(`Decryption blocked: ${result.reason}`);
             return;
         }
         if (result.decryptedCount === 0) {
-            vscode.window.showInformationMessage("No DevLeakShield tokens found in selection");
+            LoggingService_1.LoggingService.log("No DevLeakShield tokens found in selection to decrypt.");
             return;
         }
         const edit = new vscode.WorkspaceEdit();
         edit.replace(editor.document.uri, editor.selection, result.text);
         await vscode.workspace.applyEdit(edit);
-        vscode.window.showInformationMessage(`Decrypted ${result.decryptedCount} tokens in selection`);
+        LoggingService_1.LoggingService.log(`Decrypted ${result.decryptedCount} token(s) in selection.`);
     }
     getClipboardAuditSummary() {
         return this.auditService.getSummary();
