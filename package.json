@@ -4,7 +4,7 @@
   "description": "Protect secrets when copying code to AI chatbots",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.110.0"
+    "vscode": "^1.80.0"
   },
   "categories": [
     "Other"
@@ -16,52 +16,140 @@
   "contributes": {
     "keybindings": [
       {
-        "command": "devLeakShield.secureCopy",
+        "command": "devleakshield.smartCopy",
         "key": "ctrl+c",
         "when": "editorTextFocus"
       },
       {
-        "command": "devLeakShield.securePaste",
+        "command": "devleakshield.smartPaste",
         "key": "ctrl+v",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "devLeakShield.toggleAiMode",
-        "key": "ctrl+shift+m",
-        "when": "editorTextFocus"
+        "when": "editorTextFocus && !editorReadonly"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "devLeakShield.secureCopy",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@1"
+        },
+        {
+          "command": "devLeakShield.encryptSelection",
+          "when": "editorHasSelection",
+          "group": "devLeakShield@2"
+        },
+        {
+          "command": "devLeakShield.decryptSelection",
+          "when": "editorHasSelection",
+          "group": "devLeakShield@3"
+        },
+        {
+          "command": "devLeakShield.toggleSecureCopyMode",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@4"
+        },
+        {
+          "command": "devLeakShield.toggleAiMode",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@5"
+        },
+        {
+          "command": "devLeakShield.showSecurityDashboard",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@6"
+        },
+        {
+          "command": "devLeakShield.generateSecurityReport",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@7"
+        },
+        {
+          "command": "devLeakShield.runPreCommitScan",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@8"
+        },
+        {
+          "command": "devLeakShield.openVault",
+          "when": "editorTextFocus",
+          "group": "devLeakShield@9"
+        }
+      ]
+    },
     "commands": [
+      {
+        "command": "devLeakShield.secureCopy",
+        "title": "DevLeakShield: Secure Copy"
+      },
+      {
+        "command": "devLeakShield.securePaste",
+        "title": "DevLeakShield: Secure Paste"
+      },
+      {
+        "command": "devLeakShield.showSecurityDashboard",
+        "title": "Show DevLeakShield Dashboard"
+      },
+      {
+        "command": "devLeakShield.generateSecurityReport",
+        "title": "Generate Security Report"
+      },
+      {
+        "command": "devLeakShield.encryptSelection",
+        "title": "DevLeakShield: Encrypt Selection"
+      },
+      {
+        "command": "devLeakShield.decryptSelection",
+        "title": "DevLeakShield: Decrypt Selection"
+      },
+      {
+        "command": "devLeakShield.toggleSecureCopyMode",
+        "title": "Toggle Secure Copy Mode"
+      },
       {
         "command": "devLeakShield.toggleAiMode",
         "title": "Toggle AI Mode"
       },
       {
-        "command": "devLeakShield.secureCopy",
-        "title": "Secure Copy"
+        "command": "devLeakShield.runPreCommitScan",
+        "title": "Run Pre-commit Secret Scan"
       },
       {
-        "command": "devLeakShield.securePaste",
-        "title": "Secure Paste"
+        "command": "devLeakShield.openVault",
+        "title": "Initialize Secure Vault"
       },
       {
-        "command": "devLeakShield.maskSecrets",
-        "title": "Mask Secrets For AI"
+        "command": "devleakshield.smartCopy",
+        "title": "DevLeakShield: Smart Copy"
       },
       {
-        "command": "devLeakShield.restoreSecrets",
-        "title": "Restore Secrets"
+        "command": "devleakshield.smartPaste",
+        "title": "DevLeakShield: Smart Paste"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "DevLeakShield",
+      "properties": {
+        "devLeakShield.policies": {
+          "type": "array",
+          "default": [],
+          "description": "Policy rules used for secure copy, AI firewall, and Git scanning."
+        }
+      }
+    }
   },
   "scripts": {
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "test": "mocha -r ts-node/register src/test/**/*.test.ts"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.5",
+    "@types/mocha": "^10.0.1",
     "@types/node": "^20.19.37",
-    "@types/vscode": "^1.110.0",
-    "typescript": "^5.9.3"
+    "@types/vscode": "^1.80.0",
+    "chai": "^4.3.8",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.4.0"
   },
   "repository": {
     "type": "git",

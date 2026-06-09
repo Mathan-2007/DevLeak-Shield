@@ -1,0 +1,13 @@
+.git/**
+.agents/**
+.codex/**
+.vscode/**
+src/**
+node_modules/**
+*.vsix
+*.tgz
+*.map
+sample.txt
+test_regex.js
+SECURITY_ARCHITECTURE.md
+.tmp
