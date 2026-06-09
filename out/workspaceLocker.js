@@ -42,7 +42,7 @@ async function unlockWorkspace() {
         try {
             const document = await vscode.workspace.openTextDocument(file);
             let text = document.getText();
-            const matches = text.match(/HIDDEN_SECRET_DO_NOT_DECODE_[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+/g);
+            const matches = text.match(/HIDDEN_SECRET[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+/g);
             if (!matches)
                 continue;
             const tokens = Array.from(new Set(matches));

@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import * as crypto from "crypto";
+import { SessionManager } from "./core/session/SessionManager"; // Import SessionManager
 
 
 /*

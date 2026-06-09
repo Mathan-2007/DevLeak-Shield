@@ -4,7 +4,7 @@
   "description": "Protect secrets when copying code to AI chatbots",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.110.0"
+    "vscode": "^1.80.0"
   },
   "categories": [
     "Other"
@@ -16,25 +16,72 @@
   "contributes": {
     "keybindings": [
       {
-        "command": "devLeakShield.secureCopy",
-        "key": "ctrl+c",
+        "command": "devLeakShield.analyzeClipboardBeforeCopy",
+        "key": "ctrl+alt+c",
         "when": "editorTextFocus"
       },
       {
-        "command": "devLeakShield.securePaste",
-        "key": "ctrl+v",
-        "when": "editorTextFocus"
-      },
-      {
-        "command": "devLeakShield.toggleAiMode",
-        "key": "ctrl+shift+m",
+        "command": "devLeakShield.runPreCommitScan",
+        "key": "ctrl+alt+p",
         "when": "editorTextFocus"
       }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "devLeakShield.showSecurityDashboard",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        },
+        {
+          "command": "devLeakShield.toggleAiMode",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        },
+        {
+          "command": "devLeakShield.generateSecurityReport",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        },
+        {
+          "command": "devLeakShield.secureCopy",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        },
+        {
+          "command": "devLeakShield.securePaste",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        },
+        {
+          "command": "devLeakShield.encryptSelection",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        },
+        {
+          "command": "devLeakShield.decryptSelection",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        },
+        {
+          "command": "devLeakShield.runPreCommitScan",
+          "when": "editorTextFocus",
+          "group": "navigation"
+        }
+      ]
+    },
     "commands": [
       {
-        "command": "devLeakShield.toggleAiMode",
-        "title": "Toggle AI Mode"
+        "command": "devLeakShield.showSecurityDashboard",
+        "title": "Show DevLeakShield Dashboard"
+      },
+      {
+        "command": "devLeakShield.generateSecurityReport",
+        "title": "Generate Security Report"
+      },
+      {
+        "command": "devLeakShield.analyzeClipboardBeforeCopy",
+        "title": "Analyze Clipboard Before Copy"
       },
       {
         "command": "devLeakShield.secureCopy",
@@ -45,23 +92,45 @@
         "title": "Secure Paste"
       },
       {
-        "command": "devLeakShield.maskSecrets",
-        "title": "Mask Secrets For AI"
+        "command": "devLeakShield.encryptSelection",
+        "title": "Encrypt Selection"
       },
       {
-        "command": "devLeakShield.restoreSecrets",
-        "title": "Restore Secrets"
+        "command": "devLeakShield.decryptSelection",
+        "title": "Decrypt Selection"
+      },
+      {
+        "command": "devLeakShield.toggleSecureCopyMode",
+        "title": "Toggle Secure Copy Mode"
+      },
+      {
+        "command": "devLeakShield.toggleAiMode",
+        "title": "Toggle AI Mode"
+      },
+      {
+        "command": "devLeakShield.runPreCommitScan",
+        "title": "Run Pre-commit Secret Scan"
+      },
+      {
+        "command": "devLeakShield.openVault",
+        "title": "Initialize Secure Vault"
       }
     ]
   },
   "scripts": {
     "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./"
+    "watch": "tsc -watch -p ./",
+    "test": "mocha -r ts-node/register src/test/**/*.test.ts"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.5",
+    "@types/mocha": "^10.0.1",
     "@types/node": "^20.19.37",
-    "@types/vscode": "^1.110.0",
-    "typescript": "^5.9.3"
+    "@types/vscode": "^1.80.0",
+    "chai": "^4.3.8",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.4.0"
   },
   "repository": {
     "type": "git",

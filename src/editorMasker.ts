@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { detectSecrets } from "./secretDetector";
 import { encodeSecret } from "./encoder";
 import { decodeSecret } from "./decoder";
+import { getSessionKey } from "./cryptoSession"; // Temporarily use this until full refactor
 
 /*
 Store mapping between encoded value and original secret

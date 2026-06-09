@@ -1,5 +1,6 @@
 import * as crypto from "crypto";
 import { getSessionKey } from "./cryptoSession";
+import { CryptoService } from "./core/crypto/CryptoService"; // Assuming CryptoService is the canonical encryption method
 
 /*
 Encrypt a secret using AES-256

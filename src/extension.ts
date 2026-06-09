@@ -1,171 +1,104 @@
 import * as vscode from "vscode";
-import { maskEditorSecrets, restoreEditorSecrets } from "./editorMasker";
-import { secureCopy, securePaste } from "./clipboardGuard";
+import { SessionManager } from "./core/session/SessionManager";
+import { CommandRegistry } from "./commands/CommandRegistry";
+import { StatusBarManager } from "./ui/StatusBarManager";
+import { AiPromptFirewall } from "./core/firewall/AiPromptFirewall";
+import { PolicyEngine } from "./core/policies/PolicyEngine";
 
-import { initCryptoSession } from "./cryptoSession";
-import { lockWorkspace, unlockWorkspace } from "./workspaceLocker";
+let statusBarManager: StatusBarManager | undefined;
 
-/*
-Prevent infinite masking loops
-*/
-let masking = false;
-let blurTimeout: NodeJS.Timeout | null = null;
-let aiMode = false;
-let statusBarItem: vscode.StatusBarItem;
-
+/**
+ * DevLeakShield Extension: Production-grade secret protection platform
+ *
+ * Activation flow:
+ * 1. Initialize SessionManager (load/generate master key from SecretStorage)
+ * 2. Create PolicyEngine with security policies
+ * 3. Initialize CommandRegistry and register all commands
+ * 4. Set up status bar items
+ * 5. Activate event listeners (clipboard analysis)
+ *
+ * Security architecture:
+ * - Master key in VS Code SecretStorage (never plaintext)
+ * - Vault-backed token system (tokens are references only)
+ * - AES-256-GCM encryption with authentication
+ * - Zero-trust design (no reversible data in tokens)
+ */
 export async function activate(context: vscode.ExtensionContext) {
+  try {
+    // Initialize status bar
+    statusBarManager = new StatusBarManager(context);
 
-    statusBarItem = vscode.window.createStatusBarItem(
-        vscode.StatusBarAlignment.Left
+    // Initialize session manager and master key
+    const sessionManager = new SessionManager(context.secrets);
+    await sessionManager.initialize();
+    console.log("DevLeakShield: Master key initialized in SecretStorage");
+
+    // Create default security policies
+    const policyEngine = new PolicyEngine([
+      {
+        id: "policy-enterprise-threshold",
+        name: "Enterprise AI firewall threshold",
+        description: "Block secret transmissions based on configured risk thresholds.",
+        threshold: 0.7,
+        categories: ["openai", "aws", "github", "jwt", "ssh", "database", "api_key", "generic"],
+        enabled: true,
+        allowlist: [],
+        denylist: [],
+      },
+    ]);
+
+    // Initialize command registry
+    const commandRegistry = new CommandRegistry(context, sessionManager, statusBarManager);
+    await commandRegistry.initializeServices();
+    commandRegistry.registerCommands();
+    console.log("DevLeakShield: Commands registered");
+
+    // Set up status bar
+    statusBarManager.createItem(
+      "DevLeakShield: Secure",
+      "devLeakShield.showSecurityDashboard",
+      vscode.StatusBarAlignment.Left,
+      100,
+      "Open DevLeakShield security dashboard."
     );
-    statusBarItem.text = "🔓 DevLeakShield";
-    statusBarItem.command = "devLeakShield.toggleAiMode";
-    statusBarItem.show();
 
-    // 🔥 TEMP KEY (remove context if you changed crypto)
-    initCryptoSession();
-
-    console.log("DevLeakShield activated");
-
-    /*
-    SECURE COPY COMMAND
-    */
-    context.subscriptions.push(
-        vscode.commands.registerCommand("devLeakShield.secureCopy", async () => {
-            await secureCopy();
-        })
+    statusBarManager.createItem(
+      "DevLeakShield: AI Firewall",
+      "devLeakShield.toggleAiMode",
+      vscode.StatusBarAlignment.Left,
+      99,
+      "Toggle AI prompt firewall and workspace protection."
     );
 
-    /*
-    SECURE PASTE COMMAND
-    */
+    // Set up AI firewall for clipboard analysis
+    const firewall = new AiPromptFirewall(policyEngine);
     context.subscriptions.push(
-        vscode.commands.registerCommand("devLeakShield.securePaste", async () => {
-            await securePaste();
-        })
-    );
-
-    context.subscriptions.push(
-    vscode.commands.registerCommand("devLeakShield.toggleAiMode", async () => {
-
-        aiMode = !aiMode;
-
-        masking = true;
-
+      vscode.commands.registerCommand("devLeakShield.analyzeClipboardBeforeCopy", async () => {
         try {
-            if (aiMode) {
-                await lockWorkspace();
-                statusBarItem.text = "🔒 AI Mode ON";
-                vscode.window.showInformationMessage("AI Mode Enabled (Secrets Protected)");
-            } else {
-                await unlockWorkspace();
-                statusBarItem.text = "🔓 AI Mode OFF";
-                vscode.window.showInformationMessage("AI Mode Disabled (Secrets Restored)");
-            }
-        } catch (err) {
-            console.log("AI Mode toggle failed:", err);
-        } finally {
-            masking = false;
+          const clipboard = await vscode.env.clipboard.readText();
+          const decision = firewall.inspect({ source: "clipboard", text: clipboard });
+          if (!decision.allowed) {
+            vscode.window.showErrorMessage(`Clipboard blocked: ${decision.reason}`);
+            return;
+          }
+          vscode.window.showInformationMessage(`Clipboard safe: risk=${decision.risk.toFixed(2)}`);
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            `Clipboard analysis failed: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
-
-    })
-);
-
-    /*
-    WORKSPACE AI LOCK COMMANDS
-    */
-    context.subscriptions.push(
-        vscode.commands.registerCommand("devLeakShield.maskSecrets", async () => {
-            masking = true;
-            try {
-                await lockWorkspace();
-                vscode.window.showInformationMessage("Workspace Locked for AI");
-            } finally {
-                masking = false;
-            }
-        })
+      })
     );
 
-    context.subscriptions.push(
-        vscode.commands.registerCommand("devLeakShield.restoreSecrets", async () => {
-            masking = true;
-            try {
-                await unlockWorkspace();
-                vscode.window.showInformationMessage("Workspace Unlocked securely");
-            } finally {
-                masking = false;
-            }
-        })
-    );
-
-    // ✅🔥 CRITICAL: Restore secrets before saving
-    context.subscriptions.push(
-        vscode.workspace.onWillSaveTextDocument(async () => {
-
-            if (masking) return;
-
-            try {
-                for (const editor of vscode.window.visibleTextEditors) {
-
-                    const edits = await restoreEditorSecrets(editor);
-                    if (edits.length === 0) continue;
-
-                    await editor.edit(editBuilder => {
-                        for (const edit of edits) {
-                            editBuilder.replace(edit.range, edit.newText);
-                        }
-                    });
-                }
-
-                console.log("Secrets restored before save");
-
-            } catch (err) {
-                console.log("Restore failed:", err);
-            }
-        })
-    );
-
-
-    // 🔥 ADD THIS HERE (inside activate, before closing bracket)
-    context.subscriptions.push(
-        vscode.window.onDidChangeWindowState((state) => {
-
-            if (masking) return;
-            if (state.focused) return;
-
-            // 🧠 debounce (wait 500ms before running)
-            if (blurTimeout) {
-                clearTimeout(blurTimeout);
-            }
-
-            blurTimeout = setTimeout(async () => {
-
-                try {
-                    for (const editor of vscode.window.visibleTextEditors) {
-
-                        const edits = await restoreEditorSecrets(editor);
-                        if (edits.length === 0) continue;
-
-                        await editor.edit(editBuilder => {
-                            for (const edit of edits) {
-                                editBuilder.replace(edit.range, edit.newText);
-                            }
-                        });
-                    }
-
-                    console.log("Secrets restored on window blur");
-
-                } catch (err) {
-                    console.log("Blur restore failed:", err);
-                }
-
-            }, 500); // delay to avoid spam
-        })
-    );
-
+    console.log("✅ DevLeakShield activated as enterprise-grade extension with zero-trust vault architecture.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`❌ DevLeakShield activation failed: ${message}`);
+    vscode.window.showErrorMessage(`DevLeakShield initialization failed: ${message}`);
+  }
 }
 
-/*
-EXTENSION STOP
-*/
-export function deactivate() { }
+export function deactivate(): void {
+  statusBarManager?.dispose();
+  console.log("DevLeakShield deactivated.");
+}

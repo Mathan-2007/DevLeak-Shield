@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { detectSecrets } from "./secretDetector";
 import { encodeSecret } from "./encoder";
 import { decodeSecret } from "./decoder";
+import { getSessionKey } from "./cryptoSession"; // Temporarily use this until full refactor
 
 export async function lockWorkspace() {
 
@@ -59,7 +60,7 @@ export async function unlockWorkspace() {
             const document = await vscode.workspace.openTextDocument(file);
             let text = document.getText();
 
-            const matches = text.match(/HIDDEN_SECRET_DO_NOT_DECODE_[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+/g);
+            const matches = text.match(/HIDDEN_SECRET[A-Za-z0-9+/=]+:[A-Za-z0-9+/=]+/g);
 
             if (!matches) continue;
 
