@@ -5,12 +5,10 @@ const vscode = require("vscode");
 const AiPromptFirewall_1 = require("../core/firewall/AiPromptFirewall");
 const PolicyEngine_1 = require("../core/policies/PolicyEngine");
 const ReportGenerator_1 = require("../core/reports/ReportGenerator");
-const SecurityDashboardService_1 = require("../core/dashboard/SecurityDashboardService");
 const SecureVault_1 = require("../core/vault/SecureVault");
 const WorkspaceLocker_1 = require("../platform/WorkspaceLocker");
 const SecretDetectionService_1 = require("../core/secrets/SecretDetectionService");
 const ClipboardGuard_1 = require("../clipboard/ClipboardGuard");
-const GitSecurityScanner_1 = require("../core/git/GitSecurityScanner");
 const NotificationService_1 = require("../ui/NotificationService");
 const LoggingService_1 = require("../ui/LoggingService");
 class CommandRegistry {
@@ -18,7 +16,6 @@ class CommandRegistry {
         this.context = context;
         this.sessionManager = sessionManager;
         this.statusBarManager = statusBarManager;
-        this.dashboard = new SecurityDashboardService_1.SecurityDashboardService();
         this.reportGenerator = new ReportGenerator_1.ReportGenerator();
         this.secretDetectionService = new SecretDetectionService_1.SecretDetectionService();
         this.aiModeEnabled = false;
@@ -56,33 +53,12 @@ class CommandRegistry {
         this.updateSecureCopyStatus();
         this.aiModeStatusBarItem = this.statusBarManager.createItem("", "devLeakShield.toggleAiMode", vscode.StatusBarAlignment.Left, 97, "");
         this.updateAiModeStatus(this.aiModeEnabled);
-        this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.showSecurityDashboard", async () => {
-            const score = this.dashboard.getCurrentScore();
-            const vaultSummary = this.secureVault.getSummary();
-            const dashboardMessage = `Security score: ${score} | Vault entries: ${vaultSummary.totalEntries} | Avg risk: ${vaultSummary.averageRiskScore.toFixed(2)}`;
-            LoggingService_1.LoggingService.log(dashboardMessage);
-            NotificationService_1.NotificationService.showInformation(dashboardMessage);
-        }));
         this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.generateSecurityReport", async () => {
             const findings = await this.collectWorkspaceFindings();
-            const summary = SecurityDashboardService_1.SecurityDashboardService.buildSummary(findings);
-            this.dashboard.recordSummary(summary);
             const report = this.reportGenerator.generateJson(findings, this.policyEngine.getRules());
             const document = await vscode.workspace.openTextDocument({ content: report, language: "json" });
             await vscode.window.showTextDocument(document, { preview: true });
             LoggingService_1.LoggingService.log(`Security report generated with ${findings.length} finding(s).`);
-        }));
-        this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.secureCopy", async () => {
-            await this.clipboardGuard.secureCopy();
-        }));
-        this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.securePaste", async () => {
-            await this.clipboardGuard.securePaste();
-        }));
-        this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.encryptSelection", async () => {
-            await this.clipboardGuard.encryptSelection();
-        }));
-        this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.decryptSelection", async () => {
-            await this.clipboardGuard.decryptSelection();
         }));
         this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.toggleSecureCopyMode", async () => {
             const enabled = this.clipboardGuard.toggleSecureCopyMode();
@@ -94,51 +70,6 @@ class CommandRegistry {
         }));
         this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.toggleAiMode", async () => {
             await this.updateAiModeStatus(!this.aiModeEnabled, true);
-        }));
-        this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.runPreCommitScan", async () => {
-            try {
-                const workspaceFolder = vscode.window.activeTextEditor
-                    ? vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri)
-                    : vscode.workspace.workspaceFolders?.[0];
-                if (!workspaceFolder) {
-                    NotificationService_1.NotificationService.showError("Open a workspace folder before running the Git scan.");
-                    return;
-                }
-                const gitScanner = new GitSecurityScanner_1.GitSecurityScanner(this.policyEngine, this.secretDetectionService, workspaceFolder.uri.fsPath);
-                const result = await gitScanner.scanStagedFiles();
-                if (result.blocked) {
-                    NotificationService_1.NotificationService.showError(`Pre-commit scan blocked: ${result.reason}`);
-                }
-                else {
-                    LoggingService_1.LoggingService.log(`Pre-commit scan passed. Secrets scanned: ${result.secretsFound}`);
-                    NotificationService_1.NotificationService.showInformation(`Pre-commit scan passed. Secrets scanned: ${result.secretsFound}.`);
-                }
-            }
-            catch (error) {
-                NotificationService_1.NotificationService.showError(`Pre-commit scan failed: ${error instanceof Error ? error.message : String(error)}`);
-            }
-        }));
-        this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.openVault", async () => {
-            try {
-                if (!this.secureVault) {
-                    throw new Error("Vault not initialized");
-                }
-                const summary = this.secureVault.getSummary();
-                const content = JSON.stringify({
-                    status: "initialized",
-                    ...summary,
-                    note: "Secret values are never displayed by the vault viewer.",
-                }, null, 2);
-                const document = await vscode.workspace.openTextDocument({
-                    content,
-                    language: "json",
-                });
-                await vscode.window.showTextDocument(document, { preview: true });
-                LoggingService_1.LoggingService.log(`Vault opened with ${summary.totalEntries} entry or entries.`);
-            }
-            catch (error) {
-                NotificationService_1.NotificationService.showError(`Vault error: ${error instanceof Error ? error.message : String(error)}`);
-            }
         }));
         this.context.subscriptions.push(vscode.commands.registerCommand("devLeakShield.analyzeClipboardBeforeCopy", async () => {
             try {

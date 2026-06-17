@@ -29,76 +29,26 @@
     "menus": {
       "editor/context": [
         {
-          "command": "devLeakShield.secureCopy",
+          "command": "devLeakShield.toggleSecureCopyMode",
           "when": "editorTextFocus",
           "group": "devLeakShield@1"
         },
         {
-          "command": "devLeakShield.encryptSelection",
-          "when": "editorHasSelection",
-          "group": "devLeakShield@2"
-        },
-        {
-          "command": "devLeakShield.decryptSelection",
-          "when": "editorHasSelection",
-          "group": "devLeakShield@3"
-        },
-        {
-          "command": "devLeakShield.toggleSecureCopyMode",
-          "when": "editorTextFocus",
-          "group": "devLeakShield@4"
-        },
-        {
           "command": "devLeakShield.toggleAiMode",
           "when": "editorTextFocus",
-          "group": "devLeakShield@5"
-        },
-        {
-          "command": "devLeakShield.showSecurityDashboard",
-          "when": "editorTextFocus",
-          "group": "devLeakShield@6"
+          "group": "devLeakShield@2"
         },
         {
           "command": "devLeakShield.generateSecurityReport",
           "when": "editorTextFocus",
-          "group": "devLeakShield@7"
-        },
-        {
-          "command": "devLeakShield.runPreCommitScan",
-          "when": "editorTextFocus",
-          "group": "devLeakShield@8"
-        },
-        {
-          "command": "devLeakShield.openVault",
-          "when": "editorTextFocus",
-          "group": "devLeakShield@9"
+          "group": "devLeakShield@3"
         }
       ]
     },
     "commands": [
       {
-        "command": "devLeakShield.secureCopy",
-        "title": "DevLeakShield: Secure Copy"
-      },
-      {
-        "command": "devLeakShield.securePaste",
-        "title": "DevLeakShield: Secure Paste"
-      },
-      {
-        "command": "devLeakShield.showSecurityDashboard",
-        "title": "Show DevLeakShield Dashboard"
-      },
-      {
         "command": "devLeakShield.generateSecurityReport",
         "title": "Generate Security Report"
-      },
-      {
-        "command": "devLeakShield.encryptSelection",
-        "title": "DevLeakShield: Encrypt Selection"
-      },
-      {
-        "command": "devLeakShield.decryptSelection",
-        "title": "DevLeakShield: Decrypt Selection"
       },
       {
         "command": "devLeakShield.toggleSecureCopyMode",
@@ -107,14 +57,6 @@
       {
         "command": "devLeakShield.toggleAiMode",
         "title": "Toggle AI Mode"
-      },
-      {
-        "command": "devLeakShield.runPreCommitScan",
-        "title": "Run Pre-commit Secret Scan"
-      },
-      {
-        "command": "devLeakShield.openVault",
-        "title": "Initialize Secure Vault"
       },
       {
         "command": "devleakshield.smartCopy",
@@ -137,18 +79,18 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "test": "mocha -r ts-node/register src/test/**/*.test.ts"
+    "test": "mocha --require ts-node/register 'src/test/**/*.test.ts'",
+    "compile": "tsc -p ./"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.5",
-    "@types/mocha": "^10.0.1",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.19.37",
     "@types/vscode": "^1.80.0",
-    "chai": "^4.3.8",
-    "mocha": "^10.2.0",
-    "ts-node": "^10.9.1",
+    "chai": "^4.5.0",
+    "mocha": "^10.8.2",
+    "nyc": "^18.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.4.0"
   },
   "repository": {
