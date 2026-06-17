@@ -3,22 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecureCopyService = void 0;
 const SecretClassifier_1 = require("../core/secrets/SecretClassifier");
 const SecretDetectionService_1 = require("../core/secrets/SecretDetectionService");
-/**
- * SecureCopyService: Zero-trust secure copy with vault-backed tokens
- *
- * Workflow:
- * 1. Detect secrets in selected text
- * 2. Classify by category (openai, aws, github, etc.)
- * 3. Evaluate against policy and firewall
- * 4. If allowed: Store secret in vault, replace with token
- * 5. If blocked: Log audit record, return original text
- *
- * Token design:
- * - Contains ONLY vault reference ID
- * - Never contains secret or encryption key
- * - Token theft cannot recover secret
- * - Token = DEVLEAKSHIELD_TOKEN_<uuid>
- */
 class SecureCopyService {
     constructor(policyEngine, firewall, auditService, vault) {
         this.policyEngine = policyEngine;
