@@ -17,3 +17,4 @@ for (const pattern of patterns) {
     }
 }
 console.log(results);
+ 
