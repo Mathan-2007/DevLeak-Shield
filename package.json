@@ -3,6 +3,7 @@
   "displayName": "DevLeakShield",
   "description": "Protect secrets when copying code to AI chatbots",
   "version": "0.0.1",
+  "publisher": "devleakshield",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -10,7 +11,7 @@
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "onStartupFinished"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -29,53 +30,39 @@
     "menus": {
       "editor/context": [
         {
-          "command": "devLeakShield.toggleSecureCopyMode",
+          "command": "devleakshield.toggleSecureCopyMode",
           "when": "editorTextFocus",
-          "group": "devLeakShield@1"
+          "group": "devleakshield@1"
         },
         {
-          "command": "devLeakShield.toggleAiMode",
+          "command": "devleakshield.toggleAiMode",
           "when": "editorTextFocus",
-          "group": "devLeakShield@2"
+          "group": "devleakshield@2"
         },
         {
-          "command": "devLeakShield.generateSecurityReport",
+          "command": "devleakshield.generateSecurityReport",
           "when": "editorTextFocus",
-          "group": "devLeakShield@3"
+          "group": "devleakshield@3"
         }
       ]
     },
     "commands": [
       {
-        "command": "devLeakShield.generateSecurityReport",
-        "title": "Generate Security Report"
+        "command": "devleakshield.toggleSecureCopyMode",
+        "title": "DevLeakShield: Toggle Secure Copy Mode"
       },
       {
-        "command": "devLeakShield.toggleSecureCopyMode",
-        "title": "Toggle Secure Copy Mode"
+        "command": "devleakshield.toggleAiMode",
+        "title": "DevLeakShield: Toggle AI Mode"
       },
       {
-        "command": "devLeakShield.toggleAiMode",
-        "title": "Toggle AI Mode"
-      },
-      {
-        "command": "devleakshield.smartCopy",
-        "title": "DevLeakShield: Smart Copy"
-      },
-      {
-        "command": "devleakshield.smartPaste",
-        "title": "DevLeakShield: Smart Paste"
+        "command": "devleakshield.generateSecurityReport",
+        "title": "DevLeakShield: Generate Security Report"
       }
     ],
     "configuration": {
       "title": "DevLeakShield",
-      "properties": {
-        "devLeakShield.policies": {
-          "type": "array",
-          "default": [],
-          "description": "Policy rules used for secure copy, AI firewall, and Git scanning."
-        }
-      }
+      "properties": {}
     }
   },
   "scripts": {

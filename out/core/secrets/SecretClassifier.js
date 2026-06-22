@@ -2,93 +2,50 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecretClassifier = void 0;
 const CATEGORY_PATTERNS = {
-  CLOUD_KEYS: [
-    /AKIA[0-9A-Z]{16}/,                          // AWS
-    /ASIA[0-9A-Z]{16}/,                          // AWS Temp
-    /AIza[0-9A-Za-z\-_]{35}/,                    // Google
-    /ya29\.[0-9A-Za-z\-_]+/,                     // Google OAuth
-    /xox[baprs]-[A-Za-z0-9-]+/,                  // Slack
-  ],
-
-  GITHUB: [
-    /ghp_[A-Za-z0-9]{36}/,
-    /github_pat_[A-Za-z0-9_]{20,}/,
-    /gho_[A-Za-z0-9]{36}/,
-    /ghu_[A-Za-z0-9]{36}/,
-  ],
-
-  OPENAI: [
-    /sk-[A-Za-z0-9]{20,}/,
-    /sk-proj-[A-Za-z0-9_-]{20,}/,
-  ],
-
-  STRIPE: [
-    /pk_live_[A-Za-z0-9]+/,
-    /sk_live_[A-Za-z0-9]+/,
-  ],
-
-  DISCORD: [
-    /[MN][A-Za-z\d]{23}\.[\w-]{6}\.[\w-]{27}/,
-  ],
-
-  JWT: [
-    /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/,
-  ],
-
-  PRIVATE_KEYS: [
-    /-----BEGIN RSA PRIVATE KEY-----/,
-    /-----BEGIN OPENSSH PRIVATE KEY-----/,
-    /-----BEGIN EC PRIVATE KEY-----/,
-    /-----BEGIN PRIVATE KEY-----/,
-    /-----BEGIN PGP PRIVATE KEY BLOCK-----/,
-  ],
-
-  DATABASE_URLS: [
-    /mongodb(\+srv)?:\/\/.+/,
-    /postgres(ql)?:\/\/.+/,
-    /mysql:\/\/.+/,
-    /redis:\/\/.+/,
-  ],
-
-  PASSWORDS: [
-    /(password|passwd|pwd)\s*[:=]\s*["'][^"']+["']/i,
-  ],
-
-  API_KEYS: [
-    /api[_-]?key/i,
-    /client[_-]?secret/i,
-    /access[_-]?token/i,
-    /refresh[_-]?token/i,
-    /bearer\s+[a-z0-9\-_\.]+/i,
-  ],
-
-  WEBHOOKS: [
-    /https:\/\/hooks\.slack\.com\/services\/.*/,
-    /https:\/\/discord\.com\/api\/webhooks\/.*/,
-  ],
-
-  CRYPTO: [
-    /0x[a-fA-F0-9]{64}/,
-    /-----BEGIN BITCOIN PRIVATE KEY-----/,
-  ],
+    openai: /sk-[A-Za-z0-9_-]{20,}/,
+    anthropic: /sk-ant-[A-Za-z0-9_-]{20,}/,
+    aws: /AKIA[0-9A-Z]{16}|A3T[A-Z0-9]{16}|ACCA[0-9A-Z]{16}/,
+    github: /ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{20,}/,
+    jwt: /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/,
+    ssh: /-----BEGIN (RSA|OPENSSH|DSA|EC) PRIVATE KEY-----/,
+    database: /(postgres|mongodb|mysql|sqlserver|oracle).*(password|pwd|uri|connection)/i,
+    api_key: /api[_-]?key|apikey|client_secret/i,
+    generic: /.*/,
+    private_key: /-----BEGIN (RSA|DSA|EC|OPENSSH|PGP|PRIVATE) KEY/,
+    stripe: /sk_(live|test)_[A-Za-z0-9]{20,}/,
+    slack: /xox[baprs]-[A-Za-z0-9-]{10,}/,
+    discord: /[MN][A-Za-z\d]{23}\.[\w-]{6}\.[\w-]{27}/,
+    firebase: /https:\/\/[A-Za-z0-9-]+\.firebaseio\.com/,
+    kubernetes: /apiVersion:\s*v1[\s\S]*clusters:/,
+    docker: /"auth"\s*:\s*"[A-Za-z0-9+/=]+"/i,
+    azure: /[A-Za-z0-9+/]{86}==/,
+    npm: /npm_[A-Za-z0-9]{36}/,
+    gitlab: /glpat-[A-Za-z0-9_-]{20,}/,
+    shopify: /shpat_[a-f0-9]{32}/i,
+    heroku: /heroku[a-z0-9]{32}/i,
+    sendgrid: /SG\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/,
+    mailgun: /key-[a-z0-9]{32}/,
+    telegram: /\d{8,10}:[A-Za-z0-9_-]{35}/,
+    twilio: /AC[a-f0-9]{32}|SK[a-f0-9]{32}/i,
+    google: /AIza[0-9A-Za-z\-_]{35}|[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com/,
+    password: /\b(password|passwd|pwd|secret)\b/i,
+    bearer: /Bearer\s+[A-Za-z0-9\-._~+/]+=*/i,
+    access_token: /\b(access[_-]?token|refresh[_-]?token|id[_-]?token)\b/i,
+    cookie: /\b(sessionid|connect\.sid|auth_token|csrf_token)\b/i,
 };
 class SecretClassifier {
     classify(candidate) {
         for (const category of Object.keys(CATEGORY_PATTERNS)) {
-            const patterns = CATEGORY_PATTERNS[category];
-            for (const pattern of patterns) {
-                if (pattern.test(candidate)) {
-                    return category;
-                }
+            if (CATEGORY_PATTERNS[category].test(candidate)) {
+                return category;
             }
         }
         return "generic";
     }
     getConfidence(candidate, category) {
-        const patterns = CATEGORY_PATTERNS[category] || [];
-        const isMatch = patterns.some(p => p.test(candidate));
-        if (!isMatch) {
-            return 0.2; // Generic confidence for non-matching category
+        const pattern = CATEGORY_PATTERNS[category];
+        if (!pattern.test(candidate)) {
+            return 0.2;
         }
         return Math.min(1, 0.5 + candidate.length / 64);
     }
