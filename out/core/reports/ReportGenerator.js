@@ -2,16 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReportGenerator = void 0;
 class ReportGenerator {
-    generateJson(findings, policyRules) {
+    generateJson(findings) {
         const summary = this.buildSummary(findings);
         const payload = {
             summary,
             findings: this.redactFindings(findings),
-            policyRules,
         };
         return JSON.stringify(payload, null, 2);
     }
-    generateHtml(findings, policyRules) {
+    generateHtml(findings) {
         const summary = this.buildSummary(findings);
         const rows = this.redactFindings(findings)
             .map((finding) => `

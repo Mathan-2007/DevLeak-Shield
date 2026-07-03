@@ -1,17 +1,16 @@
-import { ReportPayload, ReportSummary, SecretFinding, PolicyRule } from "../../types";
+import { ReportPayload, ReportSummary, SecretFinding } from "../../types";
 
 export class ReportGenerator {
-  generateJson(findings: SecretFinding[], policyRules: PolicyRule[]): string {
+  generateJson(findings: SecretFinding[]): string {
     const summary = this.buildSummary(findings);
     const payload: ReportPayload = {
       summary,
       findings: this.redactFindings(findings),
-      policyRules,
     };
     return JSON.stringify(payload, null, 2);
   }
 
-  generateHtml(findings: SecretFinding[], policyRules: PolicyRule[]): string {
+  generateHtml(findings: SecretFinding[]): string {
     const summary = this.buildSummary(findings);
     const rows = this.redactFindings(findings)
       .map((finding) => `

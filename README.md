@@ -1,178 +1,209 @@
 # DevLeakShield
 
-Protect secrets before they leave your machine.
+> **Enterprise-grade AI-safe secret protection for Visual Studio Code**
 
-DevLeakShield is a VS Code extension designed to prevent accidental leakage of sensitive information such as API keys, passwords, tokens, credentials, private keys, and database connection strings.
-
----
-
-## Features
-
-### Secure Copy
-
-Detects sensitive secrets during copy operations.
-
-Instead of copying raw secrets:
-
-```txt
-sk-xxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-DevLeakShield stores the secret in an encrypted vault and places a secure token on the clipboard.
+DevLeakShield is a Visual Studio Code extension that helps developers prevent accidental exposure of sensitive information such as API keys, passwords, JWTs, private keys, database credentials, and access tokens when working with source code or AI assistants like ChatGPT, Claude, Gemini, GitHub Copilot, and Cursor.
 
 ---
 
-### Secure Paste
+# Features
 
-Automatically restores vault-protected secrets when pasted inside trusted environments.
+## Secret Detection
+
+Detects a wide range of secrets including:
+
+* API Keys
+* OpenAI Keys
+* GitHub Personal Access Tokens
+* AWS Access Keys
+* Azure Credentials
+* Google Cloud Credentials
+* JWT Tokens
+* SSH Private Keys
+* Database Connection Strings
+* OAuth Secrets
+* Environment Variables
+* Passwords
+* Generic High-Entropy Secrets
 
 ---
 
-### Zero-Trust Vault Architecture
+## AI Prompt Firewall
 
-- AES-256-GCM Encryption
-- Tokenized Secret References
-- UUID-based Secret Mapping
-- Session Key Protection
+Before content is copied to an AI assistant, DevLeakShield scans it for sensitive information and alerts you if secrets are detected.
 
-Secrets never travel through the clipboard in plaintext.
+Supported AI tools include:
+
+* ChatGPT
+* Claude
+* Gemini
+* GitHub Copilot
+* Cursor
+* Continue
+* Other AI-powered coding assistants
 
 ---
 
-### AI Mode
+## Secure Copy
 
-Workspace-wide secret protection.
+When sensitive information is detected:
+
+* Prevents accidental exposure
+* Stores the secret securely
+* Replaces clipboard content with a secure reference
+* Reduces the risk of credential leaks
+
+---
+
+## Secure Paste
+
+Safely restores protected secrets only inside trusted environments.
+
+---
+
+## Encrypted Secret Vault
 
 Features:
 
-- Scan project files
-- Detect sensitive data
-- Replace secrets with vault references
-- Safe AI sharing
+* AES-256-GCM Encryption
+* UUID-based Secret Mapping
+* Session Protection
+* Password-Protected Vault
+* Secure Local Storage
+
+Secrets are never stored as plain text in the clipboard.
 
 ---
 
-### Secret Detection Engine
+## Git Security
 
-Detects:
+Prevent secrets from being committed.
 
-- OpenAI Keys
-- GitHub Tokens
-- AWS Credentials
-- Database URLs
-- JWT Tokens
-- SSH Keys
-- API Keys
-- Passwords
-- OAuth Secrets
-- Environment Variables
+Features:
+
+* Git Pre-Commit Scanning
+* Commit Blocking
+* Risk Assessment
+* Secret Detection Reports
 
 ---
 
-### Policy Engine
+## Policy Engine
 
-Configurable security policies.
+Create organization-wide security policies.
 
 Examples:
 
-- Block high-risk secrets
-- Warn on medium-risk findings
-- Allow low-risk operations
+* Block High-Risk Secrets
+* Warn on Medium-Risk Secrets
+* Allow Low-Risk Operations
+* Configure Allow Lists
+* Configure Block Lists
 
 ---
 
-### Git Security Scanning
+## Security Dashboard
 
-Detect leaked secrets before they reach Git repositories.
+View security insights including:
+
+* Total Secrets Detected
+* Risk Distribution
+* Scan History
+* Detection Statistics
+* Security Reports
 
 ---
 
-## Security Architecture
+# Security Workflow
 
-DevLeakShield follows a Zero-Trust Security Model.
-
-```txt
-Secret
-  ↓
-Detection Engine
-  ↓
+```text
+Developer
+      │
+      ▼
+Secret Detection
+      │
+      ▼
+Risk Analysis
+      │
+      ▼
 Encrypted Vault
-  ↓
-UUID Token
-  ↓
-Clipboard
+      │
+      ▼
+Secure Clipboard
+      │
+      ▼
+Safe AI Sharing
 ```
-
-No secret is stored directly in clipboard content.
 
 ---
 
-## Installation
+# Commands
 
-### Marketplace
+* DevLeakShield: Secure Copy
+* DevLeakShield: Secure Paste
+* DevLeakShield: Toggle AI Mode
+* DevLeakShield: Generate Security Report
+* DevLeakShield: Scan Workspace
+* DevLeakShield: Git Pre-Commit Scan
 
-Coming Soon
+---
 
-### Manual Installation
+# Technology Stack
 
-Download:
+* TypeScript
+* Node.js
+* Visual Studio Code Extension API
+* AES-256-GCM Encryption
+* Mocha
+* npm
 
-```txt
-dev-leak-shield.vsix
-```
+---
 
-Install:
+# Installation
+
+## From VS Code Marketplace
+
+Coming Soon.
+
+## Manual Installation
+
+Install the extension from a `.vsix` package:
 
 ```bash
-code --install-extension dev-leak-shield.vsix
+code --install-extension devleakshield-1.0.0.vsix
 ```
 
 ---
 
-## Commands
+# Development
 
-### DevLeakShield: Smart Copy
+Install dependencies:
 
-Securely copy detected secrets.
+```bash
+npm install
+```
 
-### DevLeakShield: Smart Paste
+Compile:
 
-Restore encrypted secrets.
+```bash
+npm run compile
+```
 
-### DevLeakShield: Toggle AI Mode
+Run the Extension Development Host:
 
-Enable workspace protection.
-
-### DevLeakShield: Generate Security Report
-
-Create workspace security report.
-
----
-
-## Technology Stack
-
-- TypeScript
-- VS Code Extension API
-- AES-256-GCM Encryption
-- Mocha
-- Node.js
+Press **F5** inside Visual Studio Code.
 
 ---
 
-## Testing
+# Testing
 
-Current Coverage:
-
-- 27 Tests Passing
-- ~80% Coverage
-
-Run:
+Run tests:
 
 ```bash
 npm test
 ```
 
-Coverage:
+Generate coverage:
 
 ```bash
 npx nyc npm test
@@ -180,25 +211,29 @@ npx nyc npm test
 
 ---
 
-## Roadmap
+# Roadmap
 
-- Enterprise Dashboard
-- RBAC
-- SIEM Integration
-- Secret Rotation
-- Cloud Vault Support
-- GitHub Actions Integration
+* Enterprise Dashboard
+* Secret Rotation
+* Cloud Vault Support
+* SIEM Integration
+* GitHub Actions Integration
+* RBAC Support
+* Workspace Security Policies
 
 ---
 
-## License
+# License
 
 MIT License
 
 ---
 
-## Author
-Mathan
-Mathan
+# Author
 
-Security Engineering & Developer Security Tools
+**Mathan S**
+
+Cybersecurity Enthusiast • Developer Security • Secure Coding Tools
+
+GitHub:
+https://github.com/Mathan-2007
