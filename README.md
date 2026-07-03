@@ -1,8 +1,15 @@
-DevLeakShield Enterprise
+# DevLeakShield
 
-DevLeakShield is an enterprise-grade VS Code extension for AI-safe secret protection, risk-based policy enforcement, and secure developer workflows.
+![DevLeakShield Logo](./DevLeakShield-Logo-Icon-Only.svg)
 
-Core capabilities
+> **Enterprise-grade AI-safe secret protection for VS Code**
+
+DevLeakShield is a premium VS Code extension that prevents developers from accidentally leaking secrets (API keys, passwords, JWTs, tokens, credentials) to AI tools like ChatGPT, Claude, Gemini, GitHub Copilot, and Cursor.
+
+---
+
+## 🛡️ What It Does
+
 - Multi-layer secret detection: regex, entropy, and context-aware analysis
 - Confidence and risk scoring for every finding
 - AI Prompt Firewall to analyze clipboard content before copy
