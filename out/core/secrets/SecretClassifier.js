@@ -34,17 +34,28 @@ const CATEGORY_PATTERNS = {
     cookie: /\b(sessionid|connect\.sid|auth_token|csrf_token)\b/i,
 };
 class SecretClassifier {
-    classify(candidate) {
+    classify(candidate, surroundingContext) {
+        // Prefer explicit pattern matches first
         for (const category of Object.keys(CATEGORY_PATTERNS)) {
             if (CATEGORY_PATTERNS[category].test(candidate)) {
                 return category;
             }
         }
+        // Heuristics: if candidate starts with known prefixes, use that
+        if (candidate.startsWith("sk-ant-"))
+            return "anthropic";
+        if (candidate.startsWith("sk-")) {
+            // if surrounding context mentions "key" or "api", prefer openai
+            const ctx = (surroundingContext || "").toLowerCase();
+            if (ctx.includes("key") || ctx.includes("api") || ctx.includes("token"))
+                return "openai";
+            return "api_key";
+        }
         return "generic";
     }
     getConfidence(candidate, category) {
         const pattern = CATEGORY_PATTERNS[category];
-        if (!pattern.test(candidate)) {
+        if (pattern && !pattern.test(candidate)) {
             return 0.2;
         }
         return Math.min(1, 0.5 + candidate.length / 64);

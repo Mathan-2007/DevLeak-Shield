@@ -1,7 +1,23 @@
-password = "sk-2333"
-const password = HIDDEN_SECRET_DO_NOT_DECODE_HSQzzytnuopD1kEGmWOJbg==:Rb4XqQdgIRXj9+yEmLcTHg==
-password = "mySecret123"
-key = sk-daDN12neuhbyGHVG8788  
-password = "mySecret123"
-key = sk-daDN12neuhbyGHVG8788  
+    # Customer: Acme Corp
+    # Typical environment file containing both quoted and unquoted secrets
+    DB_HOST=db.acme.internal
+    DB_USER=acme_user
+HIDDEN_SECRET_DO_NOT_DECODE_kaHnEWoWF8/ncttf/1dxPYULzJpp6o/Ir14k8FEnVyox3C49o3saVVhnzeGCtXRLxC2CwoKlQSbiMp8=
+    # also appears unquoted in some exports
+HIDDEN_SECRET_DO_NOT_DECODE_vBdhoQ7nJYf+MDZ7gNLnUKAEVZOl24LiEQHx8dgckAQBKStjCm1VpKy0t8lFoKl2TTuaB4Xynh30Xa6VqDV1iSjr
 
+    # API keys
+HIDDEN_SECRET_DO_NOT_DECODE_meCeOYA2w8hQbP9r5RzsXrExO+bHL1/tbWFZUy0w5WW3ySKSHy08Hb6ptar93ftkldZHdmf6OMAopMBV9bpHAm0S
+    # sometimes customers paste keys with quotes
+HIDDEN_SECRET_DO_NOT_DECODE_F2gX1alaGKrD1oVaVrSJQpB8/AtuOBos8PJ5lpkDdUgq+3GrGt6vdy8ahFVkH91XqwNDN8q30bkv3903NXHC4XL3+1RlJDse8/OBSw4=
+
+    # Webhooks & tokens
+HIDDEN_SECRET_DO_NOT_DECODE_eGD5RHvzRiAqP1KZ9A7qLUXrqfOeANypOZXsLcrAZ64S3POGQeQq6g6MaFEVQueHOLESt+GzzBfdWwHv4jrqbF9LGizgBnNDSnPSSyGdyHy29ofLleKV8na89mQeja0=
+HIDDEN_SECRET_DO_NOT_DECODE_O+qYjceX97KpKxCjGabg809c604mcShtqx4ucXPZg4PD72fVbNzPaF/ZYhEtig+uiFbD8oHm6BmItqbqIFJiD6pvlpqKDSUf1ewY9wH5krGXjA==
+
+HIDDEN_SECRET_DO_NOT_DECODE_3GF9esgNY/eJUoCMQG6dmjMLnhE1TTw4dP92oef7FXJhXU6ta1QYUZ7nfHpHtZ+SsDJ3/24ULH0GzH326WzV2g5OhugW3Vnx
+HIDDEN_SECRET_DO_NOT_DECODE_WyrM8Tqsg8sCF9SmMJP929IOk9lUnAVi/7Eb4nLIKmz9R0uPL0Ub5VIPtl45U0Fn6OUUhyyvE98=
+HIDDEN_SECRET_DO_NOT_DECODE_bsUchUqX15FHdTXPvLwQct1Ah0IODPwEoCEYBcgFH1ll8PvfEtA/3NDc36/XC5wwCdDS2kb2pxIhGns=
+
+    # Some already-redacted values (should be ignored by redactor)
+HIDDEN_SECRET_DO_NOT_DECODE_h7mbvSBv3k5HvM2VguFpobYqQLIe8jwMR9UdGw+GAczjbueZSOYgkbw3SXynjW1PeeuoeGPoWo735l9CK1nOP2jMGMNzCipEQnJiTPW77qY=

@@ -34,11 +34,21 @@ const CATEGORY_PATTERNS: Record<SecretCategory, RegExp> = {
 };
 
 export class SecretClassifier {
-  classify(candidate: string): SecretCategory {
+  classify(candidate: string, surroundingContext?: string): SecretCategory {
+    // Prefer explicit pattern matches first
     for (const category of Object.keys(CATEGORY_PATTERNS) as SecretCategory[]) {
       if (CATEGORY_PATTERNS[category].test(candidate)) {
         return category;
       }
+    }
+
+    // Heuristics: if candidate starts with known prefixes, use that
+    if (candidate.startsWith("sk-ant-")) return "anthropic";
+    if (candidate.startsWith("sk-")) {
+      // if surrounding context mentions "key" or "api", prefer openai
+      const ctx = (surroundingContext || "").toLowerCase();
+      if (ctx.includes("key") || ctx.includes("api") || ctx.includes("token")) return "openai";
+      return "api_key";
     }
 
     return "generic";
@@ -46,7 +56,7 @@ export class SecretClassifier {
 
   getConfidence(candidate: string, category: SecretCategory): number {
     const pattern = CATEGORY_PATTERNS[category];
-    if (!pattern.test(candidate)) {
+    if (pattern && !pattern.test(candidate)) {
       return 0.2;
     }
 

@@ -1,4 +1,5 @@
 import { SecretClassifier } from "./SecretClassifier";
+import { CryptoService } from "../crypto/CryptoService";
 import { SecretFinding, DetectionResult } from "../../types";
 
 const REGEX_RULES: Array<{ name: string; pattern: RegExp; category: string }> = [
@@ -49,9 +50,6 @@ const REGEX_RULES: Array<{ name: string; pattern: RegExp; category: string }> = 
   // Tokens & Authentication
   { name: "jwt", pattern: /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/, category: "jwt" },
   { name: "bearer", pattern: /Bearer\s+[A-Za-z0-9\-._~+/]+=*/i, category: "bearer" },
-  { name: "api_key", pattern: /\b(api[_-]?key|apikey|client[_-]?secret|secret[_-]?key)\b/i, category: "api_key" },
-  { name: "access_token", pattern: /\b(access[_-]?token|refresh[_-]?token|id[_-]?token)\b/i, category: "access_token" },
-  { name: "cookie", pattern: /\b(sessionid|connect\.sid|auth_token|csrf_token)\b/i, category: "cookie" },
   
   // Database Connection Strings
   { name: "mongodb", pattern: /mongodb(\+srv)?:\/\/[^"'\s]+/i, category: "database" },
@@ -82,9 +80,6 @@ const REGEX_RULES: Array<{ name: string; pattern: RegExp; category: string }> = 
   // Platform-specific tokens
   { name: "shopify", pattern: /shpat_[a-f0-9]{32}/i, category: "shopify" },
   { name: "heroku", pattern: /heroku[a-z0-9]{32}/i, category: "heroku" },
-  
-  // Generic patterns (low priority)
-  { name: "password", pattern: /\b(password|passwd|pwd|secret)\b/i, category: "password" },
 ];
 
 const CONTEXT_KEYWORDS = [
@@ -127,26 +122,36 @@ const CONTEXT_KEYWORDS = [
 export class SecretDetectionService {
   private classifier = new SecretClassifier();
 
+  // Patterns that capture assignment-style secrets and config object property values.
+  private SECRET_PATTERNS: Array<{ name: string; pattern: RegExp; category: string }> = [
+    // Matches variable names that include password/pass or secret (handles underscores like APP_SECRET)
+    { name: "password_assign", pattern: /((?:\b|_)(?:[A-Za-z0-9_]*?(?:password|passwd|pwd|pass|secret)[A-Za-z0-9_]*)(?:\b|_))\s*[:=]\s*["']?([^"'\s;,\)\}]+)["']?/gi, category: "password" },
+    // Matches variable names that include key/token/api_key variants
+    { name: "key_assign", pattern: /((?:\b|_)(?:[A-Za-z0-9_]*?(?:key|token|api_key|apikey|client_secret|access_key|secret_key|access_token|refresh_token|id_token|session|auth_token|webhook|private_key|privateKey|database_url|connection_string|credentials)[A-Za-z0-9_]*)(?:\b|_))\s*[:=]\s*["']?([^"'\s;,\)\}]+)["']?/gi, category: "api_key" },
+    // Matches object literal property assignments such as { apiKey: "...", password: '...' }
+    { name: "object_property", pattern: /(?:["'`]?)([A-Za-z0-9_$]*?(?:api[_-]?key|apikey|token|secret|password|passwd|pwd|client_secret|access_key|secret_key|refresh_token|id_token|auth_token|session|webhook|private_key|privateKey|database_url|connection_string|credentials)[A-Za-z0-9_$]*)(?:["'`]?)[ \t]*:[ \t]*["'`]([^"'`]+?)["'`]/gi, category: "api_key" },
+  ];
+
   detect(text: string, filePath?: string): DetectionResult {
     const findings: SecretFinding[] = [];
     const seenCandidates = new Set<string>();
 
+    // Check generic regex rules first
     for (const rule of REGEX_RULES) {
-      const flags = rule.pattern.flags.includes("g")
-        ? rule.pattern.flags
-        : `${rule.pattern.flags}g`;
+      const flags = rule.pattern.flags.includes("g") ? rule.pattern.flags : `${rule.pattern.flags}g`;
       const regex = new RegExp(rule.pattern.source, flags);
-      const matches = text.matchAll(regex);
-      for (const match of matches) {
+      for (const match of text.matchAll(regex)) {
         const candidate = match[0];
         if (!candidate) continue;
         const candidateKey = `${match.index ?? -1}:${candidate}`;
         if (seenCandidates.has(candidateKey)) continue;
         seenCandidates.add(candidateKey);
 
+        const startIndex = match.index ?? 0;
         const entropyScore = this.calculateEntropy(candidate);
-        const contextScore = this.calculateContextScore(text, match.index ?? 0);
-        const category = this.classifier.classify(candidate);
+        const contextScore = this.calculateContextScore(text, startIndex);
+        const contextText = text.slice(Math.max(0, startIndex - 120), Math.min(text.length, startIndex + 120));
+        const category = this.classifier.classify(candidate, contextText);
         const confidence = this.classifier.getConfidence(candidate, category);
         const risk = this.calculateRisk(entropyScore, contextScore, confidence);
 
@@ -170,10 +175,128 @@ export class SecretDetectionService {
       }
     }
 
+    // Also check more specific secret value patterns, including assignment and config object properties (value is in capture group 2)
+    for (const rule of this.SECRET_PATTERNS) {
+      const flags = rule.pattern.flags.includes("g") ? rule.pattern.flags : `${rule.pattern.flags}g`;
+      const regex = new RegExp(rule.pattern.source, flags);
+      for (const match of text.matchAll(regex)) {
+        const full = match[0];
+        const value = match[2];
+        if (!value) continue;
+        const start = (match.index ?? 0) + full.indexOf(value);
+        const candidateKey = `${start}:${value}`;
+        if (seenCandidates.has(candidateKey)) continue;
+        seenCandidates.add(candidateKey);
+
+        const entropyScore = this.calculateEntropy(value);
+        const contextScore = this.calculateContextScore(text, start);
+        const contextText = text.slice(Math.max(0, start - 120), Math.min(text.length, start + 120));
+        const category = rule.category as any;
+        const confidence = this.classifier.getConfidence(value, category);
+        const risk = this.calculateRisk(entropyScore, contextScore, confidence);
+
+        findings.push({
+          value,
+          category: category as any,
+          location: {
+            filePath,
+            line: this.getLineNumber(text, start),
+            column: this.getColumnNumber(text, start),
+          },
+          detection: {
+            regexMatch: true,
+            entropyScore,
+            contextScore,
+            confidence,
+            risk,
+            features: this.collectFeatures(value, contextScore),
+          },
+        });
+      }
+    }
+
     return {
       findings,
       maxRisk: findings.reduce((max, finding) => Math.max(max, finding.detection.risk), 0),
       summary: this.buildSummary(findings),
+    };
+  }
+
+  // Redact detected secrets in the provided text and return the redacted text
+  redactSecrets(text: string): { redactedText: string; replacements: Array<{ original: string; replacement: string; line: number; column: number }> } {
+    const replacements: Array<{ start: number; end: number; original: string; replacement: string; line: number; column: number }> = [];
+
+    // Helper to schedule a replacement
+    const schedule = (start: number, end: number, original: string) => {
+      const key = CryptoService.generateKey();
+      const cipher = CryptoService.encrypt(original, key);
+      const token = `HIDDEN_SECRET_DO_NOT_DECODE_${cipher}`;
+      replacements.push({ start, end, original, replacement: token, line: this.getLineNumber(text, start), column: this.getColumnNumber(text, start) });
+    };
+
+    const seen = new Set<string>();
+
+    // Precompute ranges that are already redacted so we don't modify them
+    const redactedRanges: Array<{ start: number; end: number }> = [];
+    const prefix = "HIDDEN_SECRET_DO_NOT_DECODE_";
+    let searchIdx = 0;
+    while (true) {
+      const idx = text.indexOf(prefix, searchIdx);
+      if (idx === -1) break;
+      // find end of token (next whitespace or line break)
+      let j = idx;
+      while (j < text.length && !/\s/.test(text[j])) j++;
+      redactedRanges.push({ start: idx, end: j });
+      searchIdx = j;
+    }
+
+    const overlapsRedacted = (s: number, e: number) => redactedRanges.some((r) => !(e <= r.start || s >= r.end));
+
+    // First, capture assignment-style and property-style secrets (value is in capture group 2)
+    for (const rule of this.SECRET_PATTERNS) {
+      const flags = rule.pattern.flags.includes("g") ? rule.pattern.flags : `${rule.pattern.flags}g`;
+      const regex = new RegExp(rule.pattern.source, flags);
+      for (const match of text.matchAll(regex)) {
+        const full = match[0];
+        const value = match[2];
+        if (!value) continue;
+        const start = (match.index ?? 0) + full.indexOf(value);
+        const end = start + value.length;
+        const id = `${start}:${value}`;
+        if (overlapsRedacted(start, end)) continue;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        schedule(start, end, value);
+      }
+    }
+
+    // Then, capture generic regex rule matches
+    for (const rule of REGEX_RULES) {
+      const flags = rule.pattern.flags.includes("g") ? rule.pattern.flags : `${rule.pattern.flags}g`;
+      const regex = new RegExp(rule.pattern.source, flags);
+      for (const match of text.matchAll(regex)) {
+        const candidate = match[0];
+        if (!candidate) continue;
+        const start = match.index ?? 0;
+        const end = start + candidate.length;
+        const id = `${start}:${candidate}`;
+        if (overlapsRedacted(start, end)) continue;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        schedule(start, end, candidate);
+      }
+    }
+
+    // Apply replacements from end -> start to avoid shifting indexes
+    replacements.sort((a, b) => b.start - a.start);
+    let redacted = text;
+    for (const r of replacements) {
+      redacted = redacted.slice(0, r.start) + r.replacement + redacted.slice(r.end);
+    }
+
+    return {
+      redactedText: redacted,
+      replacements: replacements.map((r) => ({ original: r.original, replacement: r.replacement, line: r.line, column: r.column })),
     };
   }
 

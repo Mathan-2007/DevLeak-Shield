@@ -1,8 +1,9 @@
 {
   "name": "dev-leak-shield",
   "displayName": "DevLeakShield",
-  "description": "Protect secrets when copying code to AI chatbots",
-  "version": "0.0.1",
+  "description": "AI Prompt Firewall and Secret Detection for VS Code",
+  "version": "1.0.0",
+  "icon":"images/icon.png",
   "publisher": "devleakshield",
   "engines": {
     "vscode": "^1.80.0"

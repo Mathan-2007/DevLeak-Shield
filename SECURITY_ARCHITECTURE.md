@@ -244,7 +244,11 @@ VS Code Extension
 - ❌ Can try to decrypt with known key
 - ❌ Secret compromised
 
-**New Design**:
+**New Design**:HIDDEN_SECRET_DO_NOT_DECODE_rLMsIym4ax+15yRGh5MQ14dh+tSz48XDesDDSNfVxPXuWCkdjX/NV3h7e9D6MS5ZG6hnwZ55afQ=
+    hai
+HIDDEN_SECRET_DO_NOT_DECODE_mjJoy4Jtxw58Sl/ngbinitthzL39bi16V4ssb0QMdIORLiupUAqFBK4RrmVsPaUDjxfrVDgn4wrhvF1uCT2q
+HIDDEN_SECRET_DO_NOT_DECODE_EKP3kzUj9ePFrfwwUJk6SEomXa74sLewj/l08Aeq1sut1IormLLp0ODHz0dgOod2DaAsbNn9LSE=
+HIDDEN_SECRET_DO_NOT_DECODE_zITcUXBxJvC1qhpeGAL3XXZTiKJNgu1GOpUkO17rM45UnUsomhmwjay7NCkdEvUHVrID5kRMMuxSSLXVqw==
 - ✅ Token is UUID reference only
 - ✅ No secret or encrypted data in token
 - ✅ Attacker needs vault + master key to decrypt
@@ -393,7 +397,7 @@ VS Code Extension
    - Vault entry re-encryption
    - Backwards compatibility
 
-2. **Token Expiration**
+2. **Token Expiration**s
    - Time-limited tokens
    - Auto-cleanup of expired entries
    - Grace period for paste

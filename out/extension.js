@@ -83,19 +83,17 @@ async function activate(context) {
                 const output = selection
                     .split(/\r?\n/)
                     .map((line) => {
-                    const trimmed = line.trim();
-                    if (!trimmed) {
-                        return line;
-                    }
-                    const category = secretClassifier.classify(trimmed);
-                    const detection = secretDetectionService.detect(trimmed);
-                    const isSecret = category !== "generic" || detection.findings.length > 0;
-                    if (!isSecret) {
+                    const lineResult = secretDetectionService.detect(line);
+                    if (lineResult.findings.length === 0) {
                         return line;
                     }
                     secretLines += 1;
-                    const encrypted = CryptoService_1.CryptoService.encrypt(line, secretKey);
-                    return `${COPY_TOKEN_PREFIX}${encrypted}`;
+                    return lineResult.findings.reduce((currentLine, finding) => {
+                        const escaped = escapeRegExp(finding.value);
+                        const encrypted = CryptoService_1.CryptoService.encrypt(finding.value, secretKey);
+                        const token = `${COPY_TOKEN_PREFIX}${encrypted}`;
+                        return currentLine.replace(new RegExp(escaped, "g"), token);
+                    }, line);
                 })
                     .join(editor.document.eol === vscode.EndOfLine.CRLF ? "\r\n" : "\n");
                 if (secretLines === 0) {
@@ -235,7 +233,7 @@ function tryDecryptClipboardToken(text) {
     return decryptedAny ? decoded : undefined;
 }
 async function scanWorkspaceForSecrets() {
-    const files = await vscode.workspace.findFiles("**/*.{ts,tsx,js,jsx,json,md,env,txt,yml,yaml,xml,gradle,properties}", "**/{node_modules,out,dist,build,.git,venv,env}/**");
+    const files = await vscode.workspace.findFiles("**/*.{ts,tsx,js,jsx,py,java,go,rb,sh,bash,json,md,env,txt,yml,yaml,xml,gradle,properties,ini,conf,toml}", "**/{node_modules,out,dist,build,.git,venv,env}/**");
     const findings = [];
     await Promise.all(files.slice(0, 50).map(async (file) => {
         try {
