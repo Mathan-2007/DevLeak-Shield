@@ -1,6 +1,6 @@
 # DevLeakShield
 
-![DevLeakShield Logo](./DevLeakShield-Logo-Icon-Only.svg)
+![DevLeakShield Logo](./images/icon.png)
 
 > **Enterprise-grade AI-safe secret protection for VS Code**
 
