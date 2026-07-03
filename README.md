@@ -1,34 +1,239 @@
 # DevLeakShield
 
-![DevLeakShield Logo](./images/icon.png)
+> **Enterprise-grade AI-safe secret protection for Visual Studio Code**
 
-> **Enterprise-grade AI-safe secret protection for VS Code**
-
-DevLeakShield is a premium VS Code extension that prevents developers from accidentally leaking secrets (API keys, passwords, JWTs, tokens, credentials) to AI tools like ChatGPT, Claude, Gemini, GitHub Copilot, and Cursor.
+DevLeakShield is a Visual Studio Code extension that helps developers prevent accidental exposure of sensitive information such as API keys, passwords, JWTs, private keys, database credentials, and access tokens when working with source code or AI assistants like ChatGPT, Claude, Gemini, GitHub Copilot, and Cursor.
 
 ---
 
-## 🛡️ What It Does
+# Features
 
-- Multi-layer secret detection: regex, entropy, and context-aware analysis
-- Confidence and risk scoring for every finding
-- AI Prompt Firewall to analyze clipboard content before copy
-- Git pre-commit secret scanning and commit blocking
-- Enterprise policy engine with allowlists, denylists, and thresholds
-- Secure vault storage with session and password-protected modes
-- Workspace masking and secret restoration
-- Security dashboard with risk distribution and historical analytics
-- HTML and JSON security report generation
+## Secret Detection
 
-Architecture
-- `src/core/`: business services for detection, policy, vault, firewall, reports, and dashboard
-- `src/commands/`: VS Code command registration and orchestration
-- `src/platform/`: workspace encryption and locking
-- `src/ui/`: status bar and user-facing UI helpers
-- `src/test/`: unit and integration test scaffolding
+Detects a wide range of secrets including:
 
-Getting started
-1. Install dependencies: `npm install`
-2. Compile: `npm run compile`
-3. Run in VS Code extension host: press `F5`
-4. Use the command palette or editor context menu commands to inspect clipboard, scan commits, and generate reports.
+* API Keys
+* OpenAI Keys
+* GitHub Personal Access Tokens
+* AWS Access Keys
+* Azure Credentials
+* Google Cloud Credentials
+* JWT Tokens
+* SSH Private Keys
+* Database Connection Strings
+* OAuth Secrets
+* Environment Variables
+* Passwords
+* Generic High-Entropy Secrets
+
+---
+
+## AI Prompt Firewall
+
+Before content is copied to an AI assistant, DevLeakShield scans it for sensitive information and alerts you if secrets are detected.
+
+Supported AI tools include:
+
+* ChatGPT
+* Claude
+* Gemini
+* GitHub Copilot
+* Cursor
+* Continue
+* Other AI-powered coding assistants
+
+---
+
+## Secure Copy
+
+When sensitive information is detected:
+
+* Prevents accidental exposure
+* Stores the secret securely
+* Replaces clipboard content with a secure reference
+* Reduces the risk of credential leaks
+
+---
+
+## Secure Paste
+
+Safely restores protected secrets only inside trusted environments.
+
+---
+
+## Encrypted Secret Vault
+
+Features:
+
+* AES-256-GCM Encryption
+* UUID-based Secret Mapping
+* Session Protection
+* Password-Protected Vault
+* Secure Local Storage
+
+Secrets are never stored as plain text in the clipboard.
+
+---
+
+## Git Security
+
+Prevent secrets from being committed.
+
+Features:
+
+* Git Pre-Commit Scanning
+* Commit Blocking
+* Risk Assessment
+* Secret Detection Reports
+
+---
+
+## Policy Engine
+
+Create organization-wide security policies.
+
+Examples:
+
+* Block High-Risk Secrets
+* Warn on Medium-Risk Secrets
+* Allow Low-Risk Operations
+* Configure Allow Lists
+* Configure Block Lists
+
+---
+
+## Security Dashboard
+
+View security insights including:
+
+* Total Secrets Detected
+* Risk Distribution
+* Scan History
+* Detection Statistics
+* Security Reports
+
+---
+
+# Security Workflow
+
+```text
+Developer
+      │
+      ▼
+Secret Detection
+      │
+      ▼
+Risk Analysis
+      │
+      ▼
+Encrypted Vault
+      │
+      ▼
+Secure Clipboard
+      │
+      ▼
+Safe AI Sharing
+```
+
+---
+
+# Commands
+
+* DevLeakShield: Secure Copy
+* DevLeakShield: Secure Paste
+* DevLeakShield: Toggle AI Mode
+* DevLeakShield: Generate Security Report
+* DevLeakShield: Scan Workspace
+* DevLeakShield: Git Pre-Commit Scan
+
+---
+
+# Technology Stack
+
+* TypeScript
+* Node.js
+* Visual Studio Code Extension API
+* AES-256-GCM Encryption
+* Mocha
+* npm
+
+---
+
+# Installation
+
+## From VS Code Marketplace
+
+Coming Soon.
+
+## Manual Installation
+
+Install the extension from a `.vsix` package:
+
+```bash
+code --install-extension devleakshield-1.0.0.vsix
+```
+
+---
+
+# Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Compile:
+
+```bash
+npm run compile
+```
+
+Run the Extension Development Host:
+
+Press **F5** inside Visual Studio Code.
+
+---
+
+# Testing
+
+Run tests:
+
+```bash
+npm test
+```
+
+Generate coverage:
+
+```bash
+npx nyc npm test
+```
+
+---
+
+# Roadmap
+
+* Enterprise Dashboard
+* Secret Rotation
+* Cloud Vault Support
+* SIEM Integration
+* GitHub Actions Integration
+* RBAC Support
+* Workspace Security Policies
+
+---
+
+# License
+
+MIT License
+
+---
+
+# Author
+
+**Mathan S**
+
+Cybersecurity Enthusiast • Developer Security • Secure Coding Tools
+
+GitHub:
+https://github.com/Mathan-2007
