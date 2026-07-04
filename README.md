@@ -13,7 +13,7 @@ Designed for developers, cybersecurity learners, DevSecOps engineers, and teams 
 Install directly from the Visual Studio Code Marketplace.
 
 ```bash
-code --install-extension mathan09072007.dev-leak-shield
+code --install-extension mathan0072007.dev-leak-shield
 ```
 
 Or manually:
