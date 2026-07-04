@@ -8,8 +8,9 @@ import { LoggingService } from "./ui/LoggingService";
 
 const SECURE_COPY_STATE_KEY = "devleakshield.secureCopyState";
 const AI_MODE_STATE_KEY = "devleakshield.aiModeState";
+const SESSION_KEY_STATE_KEY = "devleakshield.sessionKey";
 const COPY_TOKEN_PREFIX = "HIDDEN_SECRET_DO_NOT_DECODE_";
-const COPY_TOKEN_REGEX = /^HIDDEN_SECRET_DO_NOT_DECODE_([A-Za-z0-9+/=]+)(?::([A-Za-z0-9+/=]+))?$/;
+const COPY_TOKEN_REGEX = /HIDDEN_SECRET_DO_NOT_DECODE_([A-Za-z0-9+/=\-_]+)(?::([A-Za-z0-9+/=\-_]+))?/g;
 
 let secretKey: Buffer;
 let secureCopyEnabled = false;
@@ -31,7 +32,7 @@ const reportGenerator = new ReportGenerator();
  * 3. Generate Security Report - Scans and reports detected secrets
  * 
  * Architecture:
- * - A new random session key is generated on every VS Code launch
+ * - A persistent session key is generated once and stored (enables decrypt across launches)
  * - AES-256-GCM encryption is used for secure copy tokens
  * - Secure copy encodes only classified secrets
  */
@@ -39,9 +40,16 @@ export async function activate(context: vscode.ExtensionContext) {
   try {
     console.log("🔐 DevLeakShield: Initializing...");
 
-    // Generate a new random session key on each VS Code launch
-    secretKey = generateSessionKey();
-    console.log("✅ Session secret key generated");
+    // Load or generate session key (persist across launches for decrypt compatibility)
+    const storedKey = await context.secrets.get(SESSION_KEY_STATE_KEY);
+    if (storedKey) {
+      secretKey = Buffer.from(storedKey, "base64");
+      console.log("✅ Session key restored from storage");
+    } else {
+      secretKey = generateSessionKey();
+      await context.secrets.store(SESSION_KEY_STATE_KEY, secretKey.toString("base64"));
+      console.log("✅ New session key generated and stored");
+    }
 
     // Restore persisted states
     secureCopyEnabled = (await context.secrets.get(SECURE_COPY_STATE_KEY)) === "true";
@@ -264,18 +272,15 @@ function tryDecryptClipboardToken(text: string): string | undefined {
 
   const decoded = lines
     .map((line) => {
-      const match = COPY_TOKEN_REGEX.exec(line.trim());
-      if (!match) {
-        return line;
-      }
-
-      const payload = match[2] ? `${match[1]}${match[2]}` : match[1];
-      try {
-        decryptedAny = true;
-        return CryptoService.decrypt(payload, secretKey);
-      } catch {
-        return line;
-      }
+      return line.replace(COPY_TOKEN_REGEX, (match, group1, group2) => {
+        const payload = group2 ? `${group1}${group2}` : group1;
+        try {
+          decryptedAny = true;
+          return CryptoService.decrypt(payload, secretKey);
+        } catch {
+          return match; // return original match if decrypt fails
+        }
+      });
     })
     .join("\n");
 

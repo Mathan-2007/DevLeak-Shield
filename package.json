@@ -4,7 +4,7 @@
   "description": "AI Prompt Firewall and Secret Detection for VS Code",
   "version": "1.0.0",
   "icon": "images/icon.png",
-  "publisher": "devleakshield",
+  "publisher": "mathan0072007",
   "engines": {
     "vscode": "^1.80.0"
   },
