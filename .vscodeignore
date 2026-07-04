@@ -11,3 +11,36 @@ sample.txt
 test_regex.js
 SECURITY_ARCHITECTURE.md
 .tmp
+# Dependencies
+node_modules/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Tests
+.nyc_output/
+coverage/
+test/
+src/test/
+
+# Git
+.git/
+.gitignore
+
+# Config/cache
+.env
+*.log
+.cache/
+
+# TypeScript source maps (optional)
+*.map
+
+# Development files
+.vscode/
+.github/
+
+# VSIX builds
+*.vsix
