@@ -170,7 +170,7 @@ Coming Soon.
 Install the extension from a `.vsix` package:
 
 ```bash
-code --install-extension devleakshield-1.0.0.vsix
+code --install-extension devleakshield-1.0.5.vsix
 ```
 
 ---
