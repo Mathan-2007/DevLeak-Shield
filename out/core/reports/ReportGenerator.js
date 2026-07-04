@@ -10,6 +10,17 @@ class ReportGenerator {
         };
         return JSON.stringify(payload, null, 2);
     }
+    generateCsv(findings) {
+        const redactedFindings = this.redactFindings(findings);
+        const rows = redactedFindings.map((finding) => {
+            const location = finding.location.filePath ?? "clipboard";
+            const line = finding.location.line ? `:${finding.location.line}` : "";
+            return [finding.category, finding.value, finding.detection.risk.toString(), finding.detection.confidence.toString(), `${location}${line}`]
+                .map((cell) => this.escapeCsv(cell))
+                .join(",");
+        });
+        return ["category,value,risk,confidence,location", ...rows].join("\n");
+    }
     generateHtml(findings) {
         const summary = this.buildSummary(findings);
         const rows = this.redactFindings(findings)
@@ -69,6 +80,10 @@ class ReportGenerator {
             ...finding,
             value: `[REDACTED ${finding.category}]`,
         }));
+    }
+    escapeCsv(value) {
+        const normalized = value.replace(/\r?\n/g, " ");
+        return /[",]/.test(normalized) ? `"${normalized.replace(/"/g, '""')}"` : normalized;
     }
 }
 exports.ReportGenerator = ReportGenerator;

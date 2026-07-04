@@ -1,8 +1,8 @@
 {
   "name": "dev-leak-shield",
   "displayName": "DevLeakShield",
-  "description": "AI Prompt Firewall and Secret Detection for VS Code",
-  "version": "1.0.5",
+  "description": "Leak-reduction clipboard and AI workflow protection for VS Code",
+  "version": "1.0.6",
   "icon": "images/icon.png",
   "publisher": "mathan0072007",
   "engines": {
@@ -44,6 +44,11 @@
           "command": "devleakshield.generateSecurityReport",
           "when": "editorTextFocus",
           "group": "devleakshield@3"
+        },
+        {
+          "command": "devleakshield.exportSecurityReport",
+          "when": "editorTextFocus",
+          "group": "devleakshield@4"
         }
       ]
     },
@@ -59,6 +64,10 @@
       {
         "command": "devleakshield.generateSecurityReport",
         "title": "DevLeakShield: Generate Security Report"
+      },
+      {
+        "command": "devleakshield.exportSecurityReport",
+        "title": "DevLeakShield: Export Findings as JSON/CSV"
       }
     ],
     "configuration": {
@@ -84,13 +93,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Mathan-2007/hashing.git"
+    "url": "git+https://github.com/Mathan-2007/DevLeak-Shield.git"
   },
-  "keywords": [],
+  "keywords": [
+    "secret-detection",
+    "vscode-extension",
+    "devsecops",
+    "ai-security"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Mathan-2007/hashing/issues"
+    "url": "https://github.com/Mathan-2007/DevLeak-Shield/issues"
   },
-  "homepage": "https://github.com/Mathan-2007/hashing#readme"
+  "homepage": "https://github.com/Mathan-2007/DevLeak-Shield#readme"
 }

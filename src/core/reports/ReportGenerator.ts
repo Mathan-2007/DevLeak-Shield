@@ -10,6 +10,19 @@ export class ReportGenerator {
     return JSON.stringify(payload, null, 2);
   }
 
+  generateCsv(findings: SecretFinding[]): string {
+    const redactedFindings = this.redactFindings(findings);
+    const rows = redactedFindings.map((finding) => {
+      const location = finding.location.filePath ?? "clipboard";
+      const line = finding.location.line ? `:${finding.location.line}` : "";
+      return [finding.category, finding.value, finding.detection.risk.toString(), finding.detection.confidence.toString(), `${location}${line}`]
+        .map((cell) => this.escapeCsv(cell))
+        .join(",");
+    });
+
+    return ["category,value,risk,confidence,location", ...rows].join("\n");
+  }
+
   generateHtml(findings: SecretFinding[]): string {
     const summary = this.buildSummary(findings);
     const rows = this.redactFindings(findings)
@@ -74,5 +87,10 @@ export class ReportGenerator {
       ...finding,
       value: `[REDACTED ${finding.category}]`,
     }));
+  }
+
+  private escapeCsv(value: string): string {
+    const normalized = value.replace(/\r?\n/g, " ");
+    return /[",]/.test(normalized) ? `"${normalized.replace(/"/g, '""')}"` : normalized;
   }
 }

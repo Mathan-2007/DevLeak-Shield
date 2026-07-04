@@ -103,7 +103,7 @@ const CONTEXT_KEYWORDS = [
     "mysql_uri",
 ];
 class SecretDetectionService {
-    constructor() {
+    constructor(customRules = []) {
         this.classifier = new SecretClassifier_1.SecretClassifier();
         // Patterns that capture assignment-style secrets and config object property values.
         this.SECRET_PATTERNS = [
@@ -114,6 +114,11 @@ class SecretDetectionService {
             // Matches object literal property assignments such as { apiKey: "...", password: '...' }
             { name: "object_property", pattern: /(?:["'`]?)([A-Za-z0-9_$]*?(?:api[_-]?key|apikey|token|secret|password|passwd|pwd|client_secret|access_key|secret_key|refresh_token|id_token|auth_token|session|webhook|private_key|privateKey|database_url|connection_string|credentials)[A-Za-z0-9_$]*)(?:["'`]?)[ \t]*:[ \t]*["'`]([^"'`]+?)["'`]/gi, category: "api_key" },
         ];
+        this.customRules = customRules.map((rule) => ({
+            name: rule.name,
+            pattern: new RegExp(rule.pattern, "g"),
+            category: rule.category ?? "custom",
+        }));
     }
     detect(text, filePath) {
         const findings = [];
@@ -135,6 +140,43 @@ class SecretDetectionService {
                 const contextScore = this.calculateContextScore(text, startIndex);
                 const contextText = text.slice(Math.max(0, startIndex - 120), Math.min(text.length, startIndex + 120));
                 const category = this.classifier.classify(candidate, contextText);
+                const confidence = this.classifier.getConfidence(candidate, category);
+                const risk = this.calculateRisk(entropyScore, contextScore, confidence);
+                findings.push({
+                    value: candidate,
+                    category: category,
+                    location: {
+                        filePath,
+                        line: this.getLineNumber(text, match.index),
+                        column: this.getColumnNumber(text, match.index),
+                    },
+                    detection: {
+                        regexMatch: true,
+                        entropyScore,
+                        contextScore,
+                        confidence,
+                        risk,
+                        features: this.collectFeatures(candidate, contextScore),
+                    },
+                });
+            }
+        }
+        for (const rule of this.customRules) {
+            const flags = rule.pattern.flags.includes("g") ? rule.pattern.flags : `${rule.pattern.flags}g`;
+            const regex = new RegExp(rule.pattern.source, flags);
+            for (const match of text.matchAll(regex)) {
+                const candidate = match[0];
+                if (!candidate)
+                    continue;
+                const candidateKey = `${match.index ?? -1}:${candidate}`;
+                if (seenCandidates.has(candidateKey))
+                    continue;
+                seenCandidates.add(candidateKey);
+                const startIndex = match.index ?? 0;
+                const entropyScore = this.calculateEntropy(candidate);
+                const contextScore = this.calculateContextScore(text, startIndex);
+                const contextText = text.slice(Math.max(0, startIndex - 120), Math.min(text.length, startIndex + 120));
+                const category = rule.category;
                 const confidence = this.classifier.getConfidence(candidate, category);
                 const risk = this.calculateRisk(entropyScore, contextScore, confidence);
                 findings.push({
@@ -228,6 +270,24 @@ class SecretDetectionService {
             searchIdx = j;
         }
         const overlapsRedacted = (s, e) => redactedRanges.some((r) => !(e <= r.start || s >= r.end));
+        for (const rule of this.customRules) {
+            const flags = rule.pattern.flags.includes("g") ? rule.pattern.flags : `${rule.pattern.flags}g`;
+            const regex = new RegExp(rule.pattern.source, flags);
+            for (const match of text.matchAll(regex)) {
+                const candidate = match[0];
+                if (!candidate)
+                    continue;
+                const start = match.index ?? 0;
+                const end = start + candidate.length;
+                const id = `${start}:${candidate}`;
+                if (overlapsRedacted(start, end))
+                    continue;
+                if (seen.has(id))
+                    continue;
+                seen.add(id);
+                schedule(start, end, candidate);
+            }
+        }
         // First, capture assignment-style and property-style secrets (value is in capture group 2)
         for (const rule of this.SECRET_PATTERNS) {
             const flags = rule.pattern.flags.includes("g") ? rule.pattern.flags : `${rule.pattern.flags}g`;

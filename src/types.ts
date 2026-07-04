@@ -28,7 +28,8 @@ export type SecretCategory =
   | "password"
   | "bearer"
   | "access_token"
-  | "cookie";
+  | "cookie"
+  | "custom";
 
 export interface SecretFinding {
   value: string;

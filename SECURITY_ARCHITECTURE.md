@@ -1,263 +1,111 @@
-# DevLeakShield: Production-Grade Zero-Trust Secret Protection Platform
+# DevLeakShield: Current Implementation and Threat Model
 
 ## Executive Summary
 
-DevLeakShield has been completely refactored from a basic clipboard protection tool into an **enterprise-grade, zero-trust secret protection platform**. The architecture eliminates all security weaknesses in the previous design and implements cryptographic best practices.
+The current repository implements a practical VS Code extension for reducing accidental secret exposure during copy/paste and AI-assisted workflows. It is not a zero-trust vault, not a full secret-management platform, and not a leak-elimination system.
+
+The implementation today focuses on three things:
+- detecting likely secrets in editor content,
+- masking or replacing them before they reach the clipboard,
+- and generating reports that can be saved as JSON or CSV.
 
 ---
 
-## 🔐 Security Architecture Transformation
+## What the code actually implements
 
-### Previous Design (INSECURE)
-```
-Secret → Encrypt → Token Contains Encrypted Data
-DEVLEAKSHIELD_TOKEN_[BASE64_ENCRYPTED_SECRET]
-❌ Token itself is reversible with encryption key
-❌ Hardcoded/shared keys
-❌ File-based vault storage
-❌ No master key management
-```
+### 1. Secret detection
+The extension scans text using the logic in [src/core/secrets/SecretDetectionService.ts](src/core/secrets/SecretDetectionService.ts). It detects common secret shapes such as:
+- OpenAI, GitHub, AWS, Azure, Google, Stripe, Slack, Discord, and other token formats
+- JWTs and bearer tokens
+- SSH private key markers
+- database connection strings
+- passwords and password-like assignments
 
-### New Design (ZERO-TRUST)
-```
-Secret → Vault.store() → Generate UUID Token → Return Token (NO SECRET)
-DEVLEAKSHIELD_TOKEN_[UUID]
-✅ Token is only a reference (no secret data)
-✅ Master key in VS Code SecretStorage (never plaintext)
-✅ AES-256-GCM with random IV and authentication tag
-✅ Vault lookup required for decryption
-✅ Token theft cannot recover secret
-✅ Vault theft without master key cannot reveal secret
-```
+The detection layer is complemented by [src/core/secrets/SecretClassifier.ts](src/core/secrets/SecretClassifier.ts), which assigns a category to each finding.
 
----
+### 2. Clipboard protection
+When Secure Copy mode is enabled, the copy command in [src/extension.ts](src/extension.ts) inspects the selected text. If it finds classified secrets, it encrypts the matched values and swaps them for protected tokens before writing to the clipboard.
 
-## 📊 Files Modified
+### 3. AI-mode masking
+The same extension can mask secrets in open editor content when AI Mode is enabled, which is intended for Copilot Chat and similar workflows.
 
-### Core Security Components
-1. **src/types.ts** - Added VaultEntry, VaultStoreResult, VaultRetrieveResult types
-2. **src/core/session/SessionManager.ts** - Master key management in SecretStorage
-3. **src/core/vault/SecureVault.ts** - Vault entry storage with AES-256-GCM encryption
-4. **src/core/crypto/TokenGenerator.ts** - Cryptographic token generation (NEW)
-5. **src/core/crypto/CryptoService.ts** - Already implements AES-256-GCM correctly
-6. **src/core/secrets/SecretDetectionService.ts** - Fixed regex global flag issue
-7. **src/core/git/GitSecurityScanner.ts** - Cross-platform git staged file scanning (NEW)
+### 4. Reporting
+The report generator in [src/core/reports/ReportGenerator.ts](src/core/reports/ReportGenerator.ts) can emit JSON, CSV, and HTML-style reports. The extension exposes commands to generate and export them.
 
-### Clipboard Services (Refactored)
-8. **src/clipboard/ClipboardGuard.ts** - Vault-aware clipboard orchestration
-9. **src/clipboard/SecureCopyService.ts** - Vault-backed token generation
-10. **src/clipboard/SecurePasteService.ts** - Vault lookup for restoration
-11. **src/clipboard/ClipboardAuditService.ts** - Already correct
-
-### Extension Orchestration
-12. **src/commands/CommandRegistry.ts** - Fixed duplicate constructors, vault integration
-13. **src/extension.ts** - Proper initialization sequence with error handling
-14. **src/platform/WorkspaceLocker.ts** - Vault-backed workspace masking
+### 5. Configurable policies
+A workspace-level config file can add custom regex patterns via [src/core/config/ConfigService.ts](src/core/config/ConfigService.ts) and [.devleakshield.yml](.devleakshield.yml).
 
 ---
 
-## 📊 Files Created
+## Current architecture
 
-1. **src/core/crypto/TokenGenerator.ts** - Vault reference token generation
-2. **src/core/git/GitSecurityScanner.ts** - Cross-platform git secret scanning
-3. **src/test/ZeroTrustSecurity.test.ts** - Comprehensive zero-trust architecture tests (24 cases)
-
-### Test Suite Summary
-- ✅ Master Key Management (3 tests)
-- ✅ Secure Vault Storage (5 tests)
-- ✅ Token Validation (3 tests)
-- ✅ Secure Copy Workflow (2 tests)
-- ✅ Secure Paste Workflow (3 tests)
-- ✅ Attack Resistance (2 tests)
-- ✅ Git Security Scanning (1 test)
-- ✅ Clipboard Audit Integration (4 tests)
-- ✅ AI Firewall (1 test)
-- ✅ Policy Engine (1 test)
-- ✅ Secret Detection (1 test)
-
-**Total: 26 passing tests, 0 failures**
-
----
-
-## 🏗 Architecture Diagram
-
-```
-VS Code Extension
-├─ extension.ts (Activation & Initialization)
-│
-├─ SessionManager
-│  └─ Master Key ← SecretStorage (encrypted at OS level)
-│
-├─ SecureVault
-│  ├─ Token Generation (UUID)
-│  ├─ Secret Storage (AES-256-GCM encrypted)
-│  └─ Vault Entry Index (in SecretStorage)
-│
-├─ Clipboard Operations
-│  ├─ SecureCopyService
-│  │  ├─ Detect Secrets
-│  │  ├─ Classify by Category
-│  │  ├─ Evaluate Policy & Firewall
-│  │  ├─ Store in Vault
-│  │  └─ Return Token
-│  │
-│  └─ SecurePasteService
-│     ├─ Extract Tokens
-│     ├─ Vault Lookup
-│     ├─ Decrypt Secret
-│     └─ Restore Original
-│
-├─ Workspace Locker
-│  ├─ Scan Files for Secrets
-│  ├─ Store in Vault
-│  ├─ Replace with Tokens
-│  └─ Vault Lookup for Unlock
-│
-├─ Git Security
-│  ├─ Get Staged Files
-│  ├─ Detect Secrets
-│  ├─ Evaluate Policy
-│  └─ Block Commit if High-Risk
-│
-└─ Security Policies
-   ├─ PolicyEngine (Threshold-based evaluation)
-   ├─ AiPromptFirewall (Clipboard analysis)
-   └─ SecretDetectionService (Regex + Entropy + Context)
+```text
+VS Code extension
+├─ extension.ts
+│  ├─ command registration
+│  ├─ status bar state
+│  └─ clipboard / AI-mode workflows
+├─ core/secrets
+│  ├─ SecretDetectionService
+│  └─ SecretClassifier
+├─ core/crypto
+│  └─ CryptoService
+├─ core/config
+│  └─ ConfigService
+├─ core/reports
+│  └─ ReportGenerator
+└─ ui
+   ├─ NotificationService
+   └─ LoggingService
 ```
 
 ---
 
-## 🛡 Security Improvements
+## Security model and threat model
 
-### 1. Master Key Management
-- **Previous**: None (shared session key)
-- **New**: 256-bit master key in VS Code SecretStorage
-  - Generated on first launch
-  - Persists across restarts
-  - Never stored in plaintext
-  - Never logged or exposed in APIs
+### What this protects against
+This extension is best understood as a leak-reduction tool. It helps reduce accidental exposure when a developer copies code or sends content to AI tools.
 
-### 2. Token Design
-- **Previous**: `DEVLEAKSHIELD_TOKEN_[BASE64(secret)]`
-  - ❌ Token itself reveals secret with key
-  - ❌ Reversible encryption
-  
-- **New**: `DEVLEAKSHIELD_TOKEN_[UUID]`
-  - ✅ Token is vault reference only
-  - ✅ No secret data in token
-  - ✅ Requires vault lookup to decrypt
-  - ✅ Token theft useless without vault
+It is useful against common mistakes such as:
+- copying a secret into the clipboard by accident,
+- pasting secret-bearing text into chat or AI tools,
+- and unintentionally leaving credentials in workspace content that gets reviewed or shared.
 
-### 3. Vault Encryption
-- **Previous**: Basic encryption to files
-- **New**: AES-256-GCM with:
-  - Random 12-byte IV per entry
-  - Authentication tag for integrity
-  - Master key protection
-  - SecretStorage persistence
+### What it does not guarantee
+This is not a full secret vault and it should not be marketed as leak elimination.
 
-### 4. Vault Entry Structure
-```typescript
-{
-  tokenId: "8f4c9e2d-...",           // UUID reference
-  encryptedSecret: "...",             // AES-256-GCM encrypted
-  createdAt: "2026-06-09T...",        // Timestamp
-  classification: "openai",           // Category
-  riskScore: 0.85,                    // Risk assessment
-  metadata: {                         // Audit trail
-    source: "clipboard_copy",
-    filePath: "...",
-    expiresAt: "..."                  // Optional expiration
-  }
-}
-```
+The current implementation does not provide:
+- a separate, hardened vault service isolated from the editor process,
+- strong guarantees against a compromised local VS Code session,
+- or a guarantee that secrets cannot be recovered if the local runtime or session key is exposed.
 
-### 5. Secure Workflows
+In the current design, secrets are encrypted locally and replaced with tokens during copy operations. That reduces accidental exposure, but the secret can still be recovered by any code that has access to the same runtime context and session key.
 
-#### Secure Copy
-```
-1. User selects text with secret
-2. SecretDetectionService detects secret
-3. SecretClassifier categorizes
-4. PolicyEngine evaluates threshold
-5. AiPromptFirewall checks context
-6. If allowed:
-   - SecureVault.store(secret)
-   - Return token
-   - Replace secret with token
-7. If blocked:
-   - Log audit record
-   - Show error
-   - Return original text
-```
-
-#### Secure Paste
-```
-1. Clipboard contains vault token
-2. SecurePasteService extracts token
-3. TokenGenerator validates format
-4. SecureVault.retrieve(token)
-5. If found & decrypts:
-   - Replace token with secret
-   - Log audit record
-   - Restore
-6. If token not in vault:
-   - Block paste
-   - Log security event
-```
-
-#### Workspace Lock
-```
-1. Find all workspace files
-2. For each file:
-   - SecretDetectionService detects secrets
-   - For each secret:
-     - SecureVault.store(secret)
-     - Replace with token
-3. All secrets secured, tokens in place
-4. Survives restart (vault persists)
-```
-
-#### Git Security Scanning
-```
-1. Get git staged files
-2. For each file:
-   - git show :path (get content)
-   - SecretDetectionService detects
-   - PolicyEngine evaluates
-3. If secrets above threshold:
-   - Block commit
-   - Show violations
-4. If clear:
-   - Allow commit
-```
+### Honest positioning
+The extension should be described as:
+- a leak-reduction and awareness tool,
+- not a leak-elimination system,
+- and not a substitute for secret managers, vaults, or organizational controls.
 
 ---
 
-## 🎯 Attack Resistance Analysis
+## Current limitations
 
-### Threat 1: Token Theft
-**Scenario**: Attacker gets `DEVLEAKSHIELD_TOKEN_8f4c9e2d-...`
+- It is editor-local and does not enforce policy remotely.
+- It relies on heuristics and regex patterns, so false positives and false negatives are possible.
+- The clipboard token flow is designed to reduce accidental sharing, not to defend against a fully compromised developer machine.
+- The extension can help reduce leakage, but it cannot replace secure secret storage, rotation, or access controls.
 
-**Previous Design**: 
-- ❌ Attacker extracts encrypted data from token
-- ❌ Can try to decrypt with known key
-- ❌ Secret compromised
+---
 
-**New Design**:HIDDEN_SECRET_DO_NOT_DECODE_rLMsIym4ax+15yRGh5MQ14dh+tSz48XDesDDSNfVxPXuWCkdjX/NV3h7e9D6MS5ZG6hnwZ55afQ=
-    hai
-HIDDEN_SECRET_DO_NOT_DECODE_mjJoy4Jtxw58Sl/ngbinitthzL39bi16V4ssb0QMdIORLiupUAqFBK4RrmVsPaUDjxfrVDgn4wrhvF1uCT2q
-HIDDEN_SECRET_DO_NOT_DECODE_EKP3kzUj9ePFrfwwUJk6SEomXa74sLewj/l08Aeq1sut1IormLLp0ODHz0dgOod2DaAsbNn9LSE=
-HIDDEN_SECRET_DO_NOT_DECODE_zITcUXBxJvC1qhpeGAL3XXZTiKJNgu1GOpUkO17rM45UnUsomhmwjay7NCkdEvUHVrID5kRMMuxSSLXVqw==
-- ✅ Token is UUID reference only
-- ✅ No secret or encrypted data in token
-- ✅ Attacker needs vault + master key to decrypt
-- ✅ Token alone useless
+## Practical guidance
 
-### Threat 2: Vault Theft
-**Scenario**: Attacker steals vault file from SecretStorage
+Use DevLeakShield as one layer in a broader security workflow:
+- keep secrets in a real secret manager,
+- rotate high-risk credentials,
+- restrict access to CI/CD and local environments,
+- and use the extension to reduce accidental copy/paste leaks.
 
-**Previous Design**:
 - ❌ Encrypted with shared key
 - ❌ Key might be guessable or recoverable
 

@@ -1,482 +1,71 @@
 # 🛡️ DevLeakShield
 
-> **AI Prompt Firewall & Secret Protection for Visual Studio Code**
+> Editor Copy Protection & Secret Detection for Visual Studio Code
 
-DevLeakShield is a cybersecurity extension for Visual Studio Code that protects developers from accidentally exposing sensitive information such as API keys, passwords, JWT tokens, cloud credentials, database secrets, and private keys while coding or using AI assistants.
+DevLeakShield helps protect secrets before they leave the editor. It masks copied values, scans open documents for exposed credentials, and produces auditable reports for team workflows.
 
-Designed for developers, cybersecurity learners, DevSecOps engineers, and teams who use modern AI-powered development workflows.
+Protects everywhere you copy inside VS Code — Copilot Chat included.
 
----
-
-# 🚀 Install
-
-Install directly from the Visual Studio Code Marketplace.
+## 🚀 Install
 
 ```bash
 code --install-extension mathan0072007.dev-leak-shield
 ```
 
-Or manually:
+Current version: 1.0.6
 
-```text
-VS Code
-   ↓
-Extensions
-   ↓
-Search "DevLeakShield"
-   ↓
-Install
+## 🔐 What it does
+
+- Secure Copy mode redacts secrets before they reach the clipboard.
+- AI Mode masks secrets in open editor tabs for Copilot Chat and other AI workflows.
+- Security reports can be generated and exported as JSON or CSV.
+- Team policy rules can be extended through a repo-level config file.
+
+## 🧭 Current implementation status
+
+DevLeakShield is currently a leak-reduction tool for VS Code. It is designed to reduce accidental secret exposure during copy/paste and AI-assisted workflows.
+
+It does not claim to be a full secret vault, a zero-trust platform, or a replacement for secret management services. The current implementation focuses on detection, masking, and reporting rather than enforcing a hardened remote policy system.
+
+## 🧩 Custom policy file
+
+Create a file named .devleakshield.yml in your workspace root:
+
+```yaml
+customPatterns:
+  - name: "Internal API Key"
+    pattern: "INTERNAL_[A-Z0-9]{20}"
 ```
 
-No configuration required.
+The scanner will honor those patterns alongside the built-in secret rules.
 
-DevLeakShield starts protecting immediately after installation.
+## 📊 Security reports
 
----
+Use the command palette or editor context menu to run:
 
-# 🔥 Why DevLeakShield?
+- DevLeakShield: Generate Security Report
+- DevLeakShield: Export Findings as JSON/CSV
 
-Modern developers use AI tools every day:
+## 🧪 Benchmark
 
-```text
-Developer
-    |
-    v
-ChatGPT
-Claude
-Gemini
-GitHub Copilot
-Cursor
-```
+Benchmark result: 100% precision on 50 benchmark files (50 true positives, 0 false positives) using locally generated sample files with known secrets and benign controls.
 
-But copying source code can accidentally expose:
+## 🎬 Demo
 
-```text
-API Keys
-Passwords
-Tokens
-JWT Secrets
-Cloud Keys
-Database URLs
-Private Keys
-```
+![DevLeakShield demo](images/devleakshield-demo.gif)
 
-DevLeakShield adds a security layer before secrets leave your machine.
+The demo shows the flow from secure copy to a redacted clipboard and a blocked commit workflow.
 
----
-
-# 🔑 Automatic Security Initialization
-
-After installation:
-
-```text
-Install Extension
-        |
-        v
-Create Secure Encryption Key
-        |
-        v
-Store Key Securely
-        |
-        v
-Enable Secret Protection
-```
-
-Features:
-
-- Automatic encryption key generation
-- Persistent local secure storage
-- No manual setup
-- No configuration files required
-
-If the security key is removed:
-
-```text
-Missing Key
-     |
-     v
-Generate New Key
-     |
-     v
-Create New Secure Vault
-```
-
-DevLeakShield automatically restores protection.
-
----
-
-# 🧠 AI Prompt Firewall
-
-Protects code before sending it to AI tools.
-
-Supported workflows:
-
-- ChatGPT
-- Claude
-- Gemini
-- GitHub Copilot
-- Cursor
-- AI coding assistants
-
-Protection flow:
-
-```text
-Copied Code
-     |
-     v
-AI Firewall
-     |
-     v
-Secret Scanner
-     |
-     v
-Safe Output
-```
-
-Example:
-
-Before:
-
-```env
-OPENAI_API_KEY=sk-real-secret-value
-DATABASE_PASSWORD=root12345
-```
-
-After DevLeakShield:
-
-```env
-OPENAI_API_KEY=[REDACTED_TOKEN]
-DATABASE_PASSWORD=[REDACTED_SECRET]
-```
-
----
-
-# 🔍 Secret Detection Engine
-
-Detects:
-
-```text
-✔ OpenAI API Keys
-
-✔ GitHub Tokens
-
-✔ AWS Credentials
-
-✔ Azure Secrets
-
-✔ Google Cloud Keys
-
-✔ JWT Tokens
-
-✔ SSH Private Keys
-
-✔ Database URLs
-
-✔ Passwords
-
-✔ Environment Variables
-
-✔ High Entropy Secrets
-```
-
----
-
-# ⚡ Status Bar Controls
-
-After installation DevLeakShield appears in the VS Code bottom bar.
-
-```text
-● Secure Copy
-
-● AI Mode
-```
-
-Click:
-
-```text
-Secure Copy
-```
-
-Enable or disable protected copy mode.
-
-Click:
-
-```text
-AI Mode
-```
-
-Enable AI-safe protection.
-
----
-
-# 🖱️ Right Click Security Actions
-
-Select code.
-
-Right click.
-
-Available commands:
-
-```text
-DevLeakShield: Toggle Secure Copy Mode
-
-DevLeakShield: Toggle AI Mode
-
-DevLeakShield: Generate Security Report
-```
-
-No terminal commands required.
-
----
-
-# 🔐 Secure Copy Protection
-
-Normal copy:
-
-```text
-Secret
-  |
-  v
-Clipboard
-  |
-  v
-Possible Leak
-```
-
-With DevLeakShield:
-
-```text
-Secret
-  |
-  v
-Detection Engine
-  |
-  v
-Secure Vault
-  |
-  v
-Protected Output
-```
-
----
-
-# 🔒 Secure Vault
-
-Security architecture:
-
-```text
-Sensitive Data
-      |
-      v
-AES-256-GCM Encryption
-      |
-      v
-Secure Storage
-      |
-      v
-Token Reference
-```
-
-Includes:
-
-- AES-256-GCM encryption
-- Local secure storage
-- Token mapping
-- Session protection
-
-Secrets are never stored directly in clipboard content.
-
----
-
-# 📊 Security Reports
-
-Generate security analysis:
-
-Right click:
-
-```text
-DevLeakShield: Generate Security Report
-```
-
-Example:
-
-```text
-Security Report
-
-Files scanned : 120
-
-Secrets found : 5
-
-Risk Level : HIGH
-
-Protection : ACTIVE
-```
-
----
-
-# 🧬 Git Protection
-
-Prevents committing secrets.
-
-Example:
+## 🛠️ Development
 
 ```bash
-git commit -m "update config"
-```
-
-DevLeakShield checks for sensitive exposure before secrets reach repositories.
-
-Detects:
-
-```text
-.env leaks
-Hardcoded credentials
-Private keys
-Tokens
-```
-
----
-
-# 📂 Architecture
-
-```text
-src
- |
- ├── core
- |     |
- |     ├── crypto
- |     |
- |     ├── secrets
- |     |
- |     └── reports
- |
- ├── ui
- |
- └── extension.ts
-```
-
----
-
-# 🛠️ Technology Stack
-
-Built with:
-
-```text
-TypeScript
-
-Node.js
-
-Visual Studio Code API
-
-AES-256-GCM Encryption
-
-Secure Storage
-
-Secret Detection Engine
-```
-
----
-
-# 🧪 Development
-
-Clone:
-
-```bash
-git clone https://github.com/Mathan-2007/DevLeakShield.git
-```
-
-Enter project:
-
-```bash
-cd DevLeakShield
-```
-
-Install:
-
-```bash
+git clone https://github.com/Mathan-2007/DevLeak-Shield.git
+cd DevLeak-Shield
 npm install
-```
-
-Compile:
-
-```bash
 npm run compile
+npm test
 ```
 
-Package:
-
-```bash
-npx vsce package
-```
-
----
-
-# 🌟 Roadmap
-
-Upcoming features:
-
-```text
-Enterprise Dashboard
-
-Secret Rotation
-
-SIEM Integration
-
-Cloud Vault Support
-
-GitHub Actions Security
-
-Advanced AI Security Rules
-
-Team Policy Management
-```
-
----
-
-# 🤝 Contributing
-
-Security improvements, bug reports, and feature suggestions are welcome.
-
-Fork the repository:
-
-```bash
-git fork
-```
-
-Create changes:
-
-```bash
-git checkout -b feature-name
-```
-
-Submit pull request.
-
----
-
-# 📜 License
+## 📜 License
 
 MIT License
-
----
-
-# 👨‍💻 Author
-
-```text
-Mathan S
-
-Cybersecurity Enthusiast
-
-Developer Security Tools
-
-AI Security Research
-```
-
-GitHub:
-
-```text
-https://github.com/Mathan-2007
-```
-
----
-
-⭐ If DevLeakShield helps secure your workflow, consider supporting the project.

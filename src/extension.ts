@@ -3,6 +3,7 @@ import { CryptoService } from "./core/crypto/CryptoService";
 import { SecretDetectionService } from "./core/secrets/SecretDetectionService";
 import { SecretClassifier } from "./core/secrets/SecretClassifier";
 import { ReportGenerator } from "./core/reports/ReportGenerator";
+import { ConfigService } from "./core/config/ConfigService";
 import { NotificationService } from "./ui/NotificationService";
 import { LoggingService } from "./ui/LoggingService";
 
@@ -19,7 +20,7 @@ let secureCopyStatusBar: vscode.StatusBarItem;
 let aiModeStatusBar: vscode.StatusBarItem;
 let aiModeBackup = new Map<string, string>();
 
-const secretDetectionService = new SecretDetectionService();
+let secretDetectionService = new SecretDetectionService();
 const secretClassifier = new SecretClassifier();
 const reportGenerator = new ReportGenerator();
 
@@ -39,6 +40,11 @@ const reportGenerator = new ReportGenerator();
 export async function activate(context: vscode.ExtensionContext) {
   try {
     console.log("🔐 DevLeakShield: Initializing...");
+
+    const configService = new ConfigService();
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const customPatterns = await configService.loadCustomPatterns(workspaceRoot);
+    secretDetectionService = new SecretDetectionService(customPatterns);
 
     // Load or generate session key (persist across launches for decrypt compatibility)
     const storedKey = await context.secrets.get(SESSION_KEY_STATE_KEY);
@@ -213,7 +219,7 @@ export async function activate(context: vscode.ExtensionContext) {
         try {
           vscode.window.withProgress(
             { location: vscode.ProgressLocation.Notification, title: "Scanning workspace for secrets..." },
-            async (progress) => {
+            async () => {
               const findings = await scanWorkspaceForSecrets();
               const report = reportGenerator.generateJson(findings);
               const doc = await vscode.workspace.openTextDocument({ content: report, language: "json" });
@@ -223,6 +229,44 @@ export async function activate(context: vscode.ExtensionContext) {
           );
         } catch (error) {
           NotificationService.showError(`Report generation failed: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      })
+    );
+
+    context.subscriptions.push(
+      vscode.commands.registerCommand("devleakshield.exportSecurityReport", async () => {
+        try {
+          const format = await vscode.window.showQuickPick(["json", "csv"], {
+            placeHolder: "Export findings as JSON or CSV",
+          });
+
+          if (!format) {
+            return;
+          }
+
+          await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: `Exporting ${format.toUpperCase()} report...` },
+            async () => {
+              const findings = await scanWorkspaceForSecrets();
+              const content = format === "json" ? reportGenerator.generateJson(findings) : reportGenerator.generateCsv(findings);
+              const defaultName = `devleakshield-report.${format}`;
+              const defaultUri = vscode.Uri.joinPath(vscode.Uri.file(workspaceRoot ?? process.cwd()), defaultName);
+              const targetUri = await vscode.window.showSaveDialog({
+                defaultUri,
+                filters: { [format.toUpperCase()]: [format] },
+              });
+
+              if (!targetUri) {
+                return;
+              }
+
+              await vscode.workspace.fs.writeFile(targetUri, Buffer.from(content, "utf8"));
+              NotificationService.showInformation(`Findings exported as ${format.toUpperCase()} to ${targetUri.fsPath}.`);
+              LoggingService.log(`Exported ${findings.length} finding(s) as ${format.toUpperCase()}`);
+            }
+          );
+        } catch (error) {
+          NotificationService.showError(`Report export failed: ${error instanceof Error ? error.message : String(error)}`);
         }
       })
     );

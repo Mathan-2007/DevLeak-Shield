@@ -7,6 +7,7 @@ const CryptoService_1 = require("./core/crypto/CryptoService");
 const SecretDetectionService_1 = require("./core/secrets/SecretDetectionService");
 const SecretClassifier_1 = require("./core/secrets/SecretClassifier");
 const ReportGenerator_1 = require("./core/reports/ReportGenerator");
+const ConfigService_1 = require("./core/config/ConfigService");
 const NotificationService_1 = require("./ui/NotificationService");
 const LoggingService_1 = require("./ui/LoggingService");
 const SECURE_COPY_STATE_KEY = "devleakshield.secureCopyState";
@@ -20,7 +21,7 @@ let aiModeEnabled = false;
 let secureCopyStatusBar;
 let aiModeStatusBar;
 let aiModeBackup = new Map();
-const secretDetectionService = new SecretDetectionService_1.SecretDetectionService();
+let secretDetectionService = new SecretDetectionService_1.SecretDetectionService();
 const secretClassifier = new SecretClassifier_1.SecretClassifier();
 const reportGenerator = new ReportGenerator_1.ReportGenerator();
 /**
@@ -39,6 +40,10 @@ const reportGenerator = new ReportGenerator_1.ReportGenerator();
 async function activate(context) {
     try {
         console.log("🔐 DevLeakShield: Initializing...");
+        const configService = new ConfigService_1.ConfigService();
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const customPatterns = await configService.loadCustomPatterns(workspaceRoot);
+        secretDetectionService = new SecretDetectionService_1.SecretDetectionService(customPatterns);
         // Load or generate session key (persist across launches for decrypt compatibility)
         const storedKey = await context.secrets.get(SESSION_KEY_STATE_KEY);
         if (storedKey) {
@@ -173,7 +178,7 @@ async function activate(context) {
         }));
         context.subscriptions.push(vscode.commands.registerCommand("devleakshield.generateSecurityReport", async () => {
             try {
-                vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Scanning workspace for secrets..." }, async (progress) => {
+                vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Scanning workspace for secrets..." }, async () => {
                     const findings = await scanWorkspaceForSecrets();
                     const report = reportGenerator.generateJson(findings);
                     const doc = await vscode.workspace.openTextDocument({ content: report, language: "json" });
@@ -183,6 +188,35 @@ async function activate(context) {
             }
             catch (error) {
                 NotificationService_1.NotificationService.showError(`Report generation failed: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }));
+        context.subscriptions.push(vscode.commands.registerCommand("devleakshield.exportSecurityReport", async () => {
+            try {
+                const format = await vscode.window.showQuickPick(["json", "csv"], {
+                    placeHolder: "Export findings as JSON or CSV",
+                });
+                if (!format) {
+                    return;
+                }
+                await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Exporting ${format.toUpperCase()} report...` }, async () => {
+                    const findings = await scanWorkspaceForSecrets();
+                    const content = format === "json" ? reportGenerator.generateJson(findings) : reportGenerator.generateCsv(findings);
+                    const defaultName = `devleakshield-report.${format}`;
+                    const defaultUri = vscode.Uri.joinPath(vscode.Uri.file(workspaceRoot ?? process.cwd()), defaultName);
+                    const targetUri = await vscode.window.showSaveDialog({
+                        defaultUri,
+                        filters: { [format.toUpperCase()]: [format] },
+                    });
+                    if (!targetUri) {
+                        return;
+                    }
+                    await vscode.workspace.fs.writeFile(targetUri, Buffer.from(content, "utf8"));
+                    NotificationService_1.NotificationService.showInformation(`Findings exported as ${format.toUpperCase()} to ${targetUri.fsPath}.`);
+                    LoggingService_1.LoggingService.log(`Exported ${findings.length} finding(s) as ${format.toUpperCase()}`);
+                });
+            }
+            catch (error) {
+                NotificationService_1.NotificationService.showError(`Report export failed: ${error instanceof Error ? error.message : String(error)}`);
             }
         }));
         console.log("✅ DevLeakShield: 3-Feature edition activated (Secure Copy | AI Mode | Report)");

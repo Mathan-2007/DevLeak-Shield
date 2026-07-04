@@ -31,12 +31,14 @@ const CATEGORY_PATTERNS: Record<SecretCategory, RegExp> = {
   bearer: /Bearer\s+[A-Za-z0-9\-._~+/]+=*/i,
   access_token: /\b(access[_-]?token|refresh[_-]?token|id[_-]?token)\b/i,
   cookie: /\b(sessionid|connect\.sid|auth_token|csrf_token)\b/i,
+  custom: /$^/,
 };
 
 export class SecretClassifier {
   classify(candidate: string, surroundingContext?: string): SecretCategory {
     // Prefer explicit pattern matches first
     for (const category of Object.keys(CATEGORY_PATTERNS) as SecretCategory[]) {
+      if (category === "custom") continue;
       if (CATEGORY_PATTERNS[category].test(candidate)) {
         return category;
       }
@@ -55,6 +57,10 @@ export class SecretClassifier {
   }
 
   getConfidence(candidate: string, category: SecretCategory): number {
+    if (category === "custom") {
+      return 0.2;
+    }
+
     const pattern = CATEGORY_PATTERNS[category];
     if (pattern && !pattern.test(candidate)) {
       return 0.2;

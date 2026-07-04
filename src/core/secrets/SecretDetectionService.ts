@@ -2,6 +2,12 @@ import { SecretClassifier } from "./SecretClassifier";
 import { CryptoService } from "../crypto/CryptoService";
 import { SecretFinding, DetectionResult } from "../../types";
 
+export interface CustomPatternRule {
+  name: string;
+  pattern: string;
+  category?: string;
+}
+
 const REGEX_RULES: Array<{ name: string; pattern: RegExp; category: string }> = [
   // AI & LLM API Keys
   { name: "openai", pattern: /sk-[A-Za-z0-9_-]{20,}/, category: "openai" },
@@ -121,6 +127,15 @@ const CONTEXT_KEYWORDS = [
 
 export class SecretDetectionService {
   private classifier = new SecretClassifier();
+  private customRules: Array<{ name: string; pattern: RegExp; category: string }>;
+
+  constructor(customRules: CustomPatternRule[] = []) {
+    this.customRules = customRules.map((rule) => ({
+      name: rule.name,
+      pattern: new RegExp(rule.pattern, "g"),
+      category: rule.category ?? "custom",
+    }));
+  }
 
   // Patterns that capture assignment-style secrets and config object property values.
   private SECRET_PATTERNS: Array<{ name: string; pattern: RegExp; category: string }> = [
@@ -152,6 +167,44 @@ export class SecretDetectionService {
         const contextScore = this.calculateContextScore(text, startIndex);
         const contextText = text.slice(Math.max(0, startIndex - 120), Math.min(text.length, startIndex + 120));
         const category = this.classifier.classify(candidate, contextText);
+        const confidence = this.classifier.getConfidence(candidate, category);
+        const risk = this.calculateRisk(entropyScore, contextScore, confidence);
+
+        findings.push({
+          value: candidate,
+          category: category as any,
+          location: {
+            filePath,
+            line: this.getLineNumber(text, match.index),
+            column: this.getColumnNumber(text, match.index),
+          },
+          detection: {
+            regexMatch: true,
+            entropyScore,
+            contextScore,
+            confidence,
+            risk,
+            features: this.collectFeatures(candidate, contextScore),
+          },
+        });
+      }
+    }
+
+    for (const rule of this.customRules) {
+      const flags = rule.pattern.flags.includes("g") ? rule.pattern.flags : `${rule.pattern.flags}g`;
+      const regex = new RegExp(rule.pattern.source, flags);
+      for (const match of text.matchAll(regex)) {
+        const candidate = match[0];
+        if (!candidate) continue;
+        const candidateKey = `${match.index ?? -1}:${candidate}`;
+        if (seenCandidates.has(candidateKey)) continue;
+        seenCandidates.add(candidateKey);
+
+        const startIndex = match.index ?? 0;
+        const entropyScore = this.calculateEntropy(candidate);
+        const contextScore = this.calculateContextScore(text, startIndex);
+        const contextText = text.slice(Math.max(0, startIndex - 120), Math.min(text.length, startIndex + 120));
+        const category = rule.category as any;
         const confidence = this.classifier.getConfidence(candidate, category);
         const risk = this.calculateRisk(entropyScore, contextScore, confidence);
 
@@ -251,6 +304,22 @@ export class SecretDetectionService {
     }
 
     const overlapsRedacted = (s: number, e: number) => redactedRanges.some((r) => !(e <= r.start || s >= r.end));
+
+    for (const rule of this.customRules) {
+      const flags = rule.pattern.flags.includes("g") ? rule.pattern.flags : `${rule.pattern.flags}g`;
+      const regex = new RegExp(rule.pattern.source, flags);
+      for (const match of text.matchAll(regex)) {
+        const candidate = match[0];
+        if (!candidate) continue;
+        const start = match.index ?? 0;
+        const end = start + candidate.length;
+        const id = `${start}:${candidate}`;
+        if (overlapsRedacted(start, end)) continue;
+        if (seen.has(id)) continue;
+        seen.add(id);
+        schedule(start, end, candidate);
+      }
+    }
 
     // First, capture assignment-style and property-style secrets (value is in capture group 2)
     for (const rule of this.SECRET_PATTERNS) {
