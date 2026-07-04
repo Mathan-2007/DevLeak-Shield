@@ -6,6 +6,26 @@ const SALT_LENGTH = 16;
 const TAG_LENGTH = 16;
 
 export class CryptoService {
+  generateKey(): Buffer {
+    return CryptoService.generateKey();
+  }
+
+  deriveKey(password: string, salt: Buffer): Buffer {
+    return CryptoService.deriveKey(password, salt);
+  }
+
+  encrypt(plainText: string, key: Buffer): string {
+    return CryptoService.encrypt(plainText, key);
+  }
+
+  decrypt(cipherText: string, key: Buffer): string {
+    return CryptoService.decrypt(cipherText, key);
+  }
+
+  hash(input: string): string {
+    return CryptoService.hash(input);
+  }
+
   static generateKey(): Buffer {
     return crypto.randomBytes(32);
   }

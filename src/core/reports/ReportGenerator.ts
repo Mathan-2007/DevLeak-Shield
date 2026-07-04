@@ -1,17 +1,17 @@
 import { ReportPayload, ReportSummary, SecretFinding } from "../../types";
 
 export class ReportGenerator {
-  generateJson(findings: SecretFinding[]): string {
-    const summary = this.buildSummary(findings);
-    const payload: ReportPayload = {
+  generateJson(findings: SecretFinding[]): ReportPayload {
+    const normalizedFindings = findings.map((finding) => this.normalizeFinding(finding));
+    const summary = this.buildSummary(normalizedFindings);
+    return {
       summary,
-      findings: this.redactFindings(findings),
+      findings: this.redactFindings(normalizedFindings),
     };
-    return JSON.stringify(payload, null, 2);
   }
 
   generateCsv(findings: SecretFinding[]): string {
-    const redactedFindings = this.redactFindings(findings);
+    const redactedFindings = this.redactFindings(findings.map((finding) => this.normalizeFinding(finding)));
     const rows = redactedFindings.map((finding) => {
       const location = finding.location.filePath ?? "clipboard";
       const line = finding.location.line ? `:${finding.location.line}` : "";
@@ -24,8 +24,9 @@ export class ReportGenerator {
   }
 
   generateHtml(findings: SecretFinding[]): string {
-    const summary = this.buildSummary(findings);
-    const rows = this.redactFindings(findings)
+    const normalizedFindings = findings.map((finding) => this.normalizeFinding(finding));
+    const summary = this.buildSummary(normalizedFindings);
+    const rows = this.redactFindings(normalizedFindings)
       .map((finding) => `
         <tr>
           <td>${finding.category}</td>
@@ -82,10 +83,37 @@ export class ReportGenerator {
     };
   }
 
+  private normalizeFinding(finding: SecretFinding | any): SecretFinding {
+    const detection = finding.detection ?? {};
+    return {
+      ...finding,
+      value: finding.value ?? finding.redactedValue ?? "[REDACTED]",
+      category: finding.category ?? "unknown",
+      filePath: finding.filePath ?? finding.location?.filePath ?? "clipboard",
+      line: finding.line ?? finding.location?.line,
+      column: finding.column ?? finding.location?.column,
+      location: {
+        filePath: finding.filePath ?? finding.location?.filePath ?? "clipboard",
+        line: finding.line ?? finding.location?.line,
+        column: finding.column ?? finding.location?.column,
+      },
+      detection: {
+        regexMatch: detection.regexMatch ?? true,
+        entropyScore: detection.entropyScore ?? 0,
+        contextScore: detection.contextScore ?? 0,
+        confidence: detection.confidence ?? finding.confidence ?? finding.detection?.confidence ?? 0.5,
+        risk: detection.risk ?? finding.riskScore ?? finding.detection?.risk ?? 0,
+        features: detection.features ?? [],
+      },
+    } as SecretFinding;
+  }
+
   private redactFindings(findings: SecretFinding[]): SecretFinding[] {
     return findings.map((finding) => ({
       ...finding,
-      value: `[REDACTED ${finding.category}]`,
+      value: typeof finding.value === "string" && finding.value.includes("[REDACTED")
+        ? finding.value
+        : `[REDACTED_${finding.category}]`,
     }));
   }
 

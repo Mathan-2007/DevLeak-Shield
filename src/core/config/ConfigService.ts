@@ -1,4 +1,12 @@
-import * as vscode from "vscode";
+import * as fs from "fs";
+import * as path from "path";
+
+let vscodeRuntime: any;
+try {
+  vscodeRuntime = require("vscode");
+} catch {
+  vscodeRuntime = undefined;
+}
 
 export interface CustomPatternConfig {
   name: string;
@@ -7,17 +15,16 @@ export interface CustomPatternConfig {
 }
 
 export class ConfigService {
-  async loadCustomPatterns(workspaceRoot?: string): Promise<CustomPatternConfig[]> {
-    const roots = workspaceRoot
-      ? [vscode.Uri.file(workspaceRoot)]
-      : (vscode.workspace.workspaceFolders ?? []).map((folder) => folder.uri);
+  loadCustomPatterns(workspaceRoot?: string): CustomPatternConfig[] {
+    const roots = this.getRoots(workspaceRoot);
 
     for (const root of roots) {
       for (const filename of [".devleakshield.yml", ".devleakshield.yaml"]) {
-        const configPath = vscode.Uri.joinPath(root, filename);
+        const configPath = path.join(root, filename);
         try {
-          const content = await vscode.workspace.fs.readFile(configPath);
-          return this.parse(content.toString());
+          if (fs.existsSync(configPath)) {
+            return this.parse(fs.readFileSync(configPath, "utf8"));
+          }
         } catch {
           // Continue to the next candidate path.
         }
@@ -30,19 +37,19 @@ export class ConfigService {
   parse(content: string): CustomPatternConfig[] {
     const patterns: CustomPatternConfig[] = [];
     const lines = content.split(/\r?\n/);
-    let inCustomPatterns = false;
+    let activeSection: "customPatterns" | "rules" | null = null;
     let currentPattern: Partial<CustomPatternConfig> | undefined;
 
     for (const rawLine of lines) {
       const line = rawLine.trim();
       if (!line || line.startsWith("#")) continue;
 
-      if (line === "customPatterns:") {
-        inCustomPatterns = true;
+      if (line === "customPatterns:" || line === "rules:") {
+        activeSection = line === "customPatterns:" ? "customPatterns" : "rules";
         continue;
       }
 
-      if (!inCustomPatterns) continue;
+      if (!activeSection) continue;
 
       if (line.startsWith("-")) {
         if (currentPattern) {
@@ -90,8 +97,20 @@ export class ConfigService {
     return {
       name: pattern.name ?? "custom-pattern",
       pattern: pattern.pattern ?? "",
-      category: pattern.category ?? "api_key",
+      category: pattern.category ?? "custom",
     };
+  }
+
+  private getRoots(workspaceRoot?: string): string[] {
+    if (workspaceRoot) {
+      return [path.resolve(workspaceRoot)];
+    }
+
+    if (vscodeRuntime?.workspace?.workspaceFolders?.length) {
+      return vscodeRuntime.workspace.workspaceFolders.map((folder: any) => folder.uri.fsPath);
+    }
+
+    return [process.cwd()];
   }
 
   private parseScalar(rawValue: string): string {

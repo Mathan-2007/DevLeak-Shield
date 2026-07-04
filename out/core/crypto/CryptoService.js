@@ -7,6 +7,21 @@ const IV_LENGTH = 12;
 const SALT_LENGTH = 16;
 const TAG_LENGTH = 16;
 class CryptoService {
+    generateKey() {
+        return CryptoService.generateKey();
+    }
+    deriveKey(password, salt) {
+        return CryptoService.deriveKey(password, salt);
+    }
+    encrypt(plainText, key) {
+        return CryptoService.encrypt(plainText, key);
+    }
+    decrypt(cipherText, key) {
+        return CryptoService.decrypt(cipherText, key);
+    }
+    hash(input) {
+        return CryptoService.hash(input);
+    }
     static generateKey() {
         return crypto.randomBytes(32);
     }

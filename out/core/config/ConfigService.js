@@ -74,8 +74,17 @@ class ConfigService {
         return {
             name: pattern.name ?? "custom-pattern",
             pattern: pattern.pattern ?? "",
-            category: pattern.category ?? "api_key",
+            category: pattern.category ?? "custom",
         };
+    }
+    getRoots(workspaceRoot) {
+        if (workspaceRoot) {
+            return [path.resolve(workspaceRoot)];
+        }
+        if (vscodeRuntime?.workspace?.workspaceFolders?.length) {
+            return vscodeRuntime.workspace.workspaceFolders.map((folder) => folder.uri.fsPath);
+        }
+        return [process.cwd()];
     }
     parseScalar(rawValue) {
         const trimmed = rawValue.trim();

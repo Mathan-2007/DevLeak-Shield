@@ -4,11 +4,10 @@ exports.ReportGenerator = void 0;
 class ReportGenerator {
     generateJson(findings) {
         const summary = this.buildSummary(findings);
-        const payload = {
+        return {
             summary,
             findings: this.redactFindings(findings),
         };
-        return JSON.stringify(payload, null, 2);
     }
     generateCsv(findings) {
         const redactedFindings = this.redactFindings(findings);
@@ -78,7 +77,7 @@ class ReportGenerator {
     redactFindings(findings) {
         return findings.map((finding) => ({
             ...finding,
-            value: `[REDACTED ${finding.category}]`,
+            value: `[REDACTED_${finding.category}]`,
         }));
     }
     escapeCsv(value) {

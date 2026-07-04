@@ -34,6 +34,9 @@ export type SecretCategory =
 export interface SecretFinding {
   value: string;
   category: SecretCategory;
+  filePath?: string;
+  line?: number;
+  column?: number;
   location: {
     filePath?: string;
     line?: number;

@@ -173,6 +173,9 @@ export class SecretDetectionService {
         findings.push({
           value: candidate,
           category: category as any,
+          filePath,
+          line: this.getLineNumber(text, match.index),
+          column: this.getColumnNumber(text, match.index),
           location: {
             filePath,
             line: this.getLineNumber(text, match.index),
@@ -211,6 +214,9 @@ export class SecretDetectionService {
         findings.push({
           value: candidate,
           category: category as any,
+          filePath,
+          line: this.getLineNumber(text, match.index),
+          column: this.getColumnNumber(text, match.index),
           location: {
             filePath,
             line: this.getLineNumber(text, match.index),
@@ -251,6 +257,9 @@ export class SecretDetectionService {
         findings.push({
           value,
           category: category as any,
+          filePath,
+          line: this.getLineNumber(text, start),
+          column: this.getColumnNumber(text, start),
           location: {
             filePath,
             line: this.getLineNumber(text, start),
@@ -273,6 +282,10 @@ export class SecretDetectionService {
       maxRisk: findings.reduce((max, finding) => Math.max(max, finding.detection.risk), 0),
       summary: this.buildSummary(findings),
     };
+  }
+
+  scan(text: string, filePath?: string): SecretFinding[] {
+    return this.detect(text, filePath).findings;
   }
 
   // Redact detected secrets in the provided text and return the redacted text

@@ -222,7 +222,7 @@ export async function activate(context: vscode.ExtensionContext) {
             async () => {
               const findings = await scanWorkspaceForSecrets();
               const report = reportGenerator.generateJson(findings);
-              const doc = await vscode.workspace.openTextDocument({ content: report, language: "json" });
+              const doc = await vscode.workspace.openTextDocument({ content: JSON.stringify(report, null, 2), language: "json" });
               await vscode.window.showTextDocument(doc, { preview: false });
               LoggingService.log(`Report generated with ${findings.length} finding(s)`);
             }
@@ -248,7 +248,7 @@ export async function activate(context: vscode.ExtensionContext) {
             { location: vscode.ProgressLocation.Notification, title: `Exporting ${format.toUpperCase()} report...` },
             async () => {
               const findings = await scanWorkspaceForSecrets();
-              const content = format === "json" ? reportGenerator.generateJson(findings) : reportGenerator.generateCsv(findings);
+              const content = format === "json" ? JSON.stringify(reportGenerator.generateJson(findings), null, 2) : reportGenerator.generateCsv(findings);
               const defaultName = `devleakshield-report.${format}`;
               const defaultUri = vscode.Uri.joinPath(vscode.Uri.file(workspaceRoot ?? process.cwd()), defaultName);
               const targetUri = await vscode.window.showSaveDialog({

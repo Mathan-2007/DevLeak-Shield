@@ -1,0 +1,94 @@
+  AI Mode: mask open editor content
+    ✔ masks a low-confidence-looking secret too, since no threshold gating exists
+    ✔ masks all secret categories present in a mixed document
+    ✔ stores an in-memory backup that exactly reconstructs the original
+    ✔ returns null (not a thrown error) when restoring a document with no backup
+    ✔ leaves code with no secrets completely unchanged
+    ✔ does not crash on very large documents (basic perf/robustness check) (351ms)
+
+  Custom config: .devleakshield.yml handling
+    ✔ loads a well-formed config with a single custom rule
+    ✔ returns an empty array (not a throw) when the file does not exist
+    ✔ falls back gracefully on completely invalid syntax
+    ✔ skips a rule missing a required 'pattern' field instead of crashing
+    ✔ skips a rule with an invalid/unparseable regex pattern instead of crashing
+    ✔ handles an empty rules list without error
+    ✔ handles comment lines and blank lines mixed into the file
+    ✔ loads multiple rules correctly and preserves order
+    ✔ does not misinterpret a rule's pattern value containing a colon (common YAML gotcha)
+
+  SecretDetectionService custom patterns
+    ✔ detects secrets that match configured custom regex patterns
+    ✔ keeps ordinary paths from being treated as high-confidence custom secrets
+
+  Detection benchmark (precision / recall)
+
+--- Detection Benchmark ---
+Precision: 88.2%
+Recall:    100.0%
+TP=15 FP=2 FN=0 TN=8
+--- Per category ---
+openai: TP=1 FP=0 FN=0 TN=0
+anthropic: TP=1 FP=0 FN=0 TN=0
+github: TP=2 FP=0 FN=0 TN=0
+aws: TP=1 FP=0 FN=0 TN=0
+google: TP=1 FP=0 FN=0 TN=0
+stripe: TP=1 FP=0 FN=0 TN=0
+slack: TP=1 FP=0 FN=0 TN=0
+jwt: TP=1 FP=0 FN=0 TN=0
+db-url: TP=2 FP=0 FN=0 TN=0
+ssh-key: TP=1 FP=0 FN=0 TN=0
+discord: TP=1 FP=0 FN=0 TN=0
+npm: TP=1 FP=0 FN=0 TN=0
+password: TP=1 FP=0 FN=0 TN=0
+version-string: TP=0 FP=0 FN=0 TN=1
+uuid: TP=0 FP=0 FN=0 TN=1
+comment: TP=0 FP=0 FN=0 TN=1
+placeholder: TP=0 FP=1 FN=0 TN=0
+md5-like: TP=0 FP=0 FN=0 TN=1
+import-statement: TP=0 FP=0 FN=0 TN=1
+color-code: TP=0 FP=0 FN=0 TN=1
+commit-message: TP=0 FP=0 FN=0 TN=1
+prose-with-keyword: TP=0 FP=1 FN=0 TN=0
+sql-keyword-only: TP=0 FP=0 FN=0 TN=1
+    ✔ prints a precision/recall summary (informational, always passes)
+    ✔ recall on true positives is at least 80% (fails the build if detection quality regresses)
+    ✔ false positive rate on known-safe samples is at most 20%
+    ✔ every individual true-positive sample is caught (hard requirement per known secret type)
+
+  Report generation
+    ✔ generates a JSON report with a summary and findings list
+    ✔ JSON report summary counts match the findings array length
+    ✔ never includes raw secret values in the JSON report — only redacted tokens
+    ✔ generates a valid CSV with one row per finding plus a header
+    ✔ CSV output escapes commas/quotes in file paths correctly
+    ✔ generates HTML report content even though no command currently exposes it
+    ✔ handles an empty findings array without throwing, for all three formats
+
+  Secure Copy workflow
+    ✔ replaces a detected OpenAI key with a redacted token
+    ✔ replaces multiple distinct secrets independently with unique tokens
+    ✔ leaves plain, non-secret text completely untouched
+    ✔ does not leak plaintext secret value anywhere in the transformed output
+    ✔ produces a token that this same key can later decrypt back to the original
+    ✔ does not throw on empty input
+    ✔ handles input with no line breaks (single long line) without missing secrets
+
+  Secure Paste workflow
+    ✔ restores the original secret when the token matches the current session key
+    ✔ restores multiple tokens in the same paste independently
+    ✔ falls back to unchanged text when the token id is unknown (different session)
+    ✔ falls back gracefully when decryption fails (wrong key / corrupted payload)
+    ✔ does not alter clipboard text that contains no tokens at all
+    ✔ does not falsely match text that merely resembles a token format
+
+  Workspace scan
+    ✔ finds secrets across multiple files under the file cap
+    ✔ respects the documented 50-file cap and does not scan beyond it
+    ✔ returns an empty array for a workspace with no secrets
+    ✔ does not throw on an empty workspace directory
+    ✔ does not throw when a workspace path does not exist
+    ✔ each finding includes enough metadata to locate it (file path + line)
+
+
+  47 passing (396ms)
