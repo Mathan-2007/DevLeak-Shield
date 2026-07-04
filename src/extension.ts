@@ -50,7 +50,7 @@ export async function activate(context: vscode.ExtensionContext) {
       await context.secrets.store(SESSION_KEY_STATE_KEY, secretKey.toString("base64"));
       console.log("✅ New session key generated and stored");
     }
-
+    
     // Restore persisted states
     secureCopyEnabled = (await context.secrets.get(SECURE_COPY_STATE_KEY)) === "true";
     aiModeEnabled = (await context.secrets.get(AI_MODE_STATE_KEY)) === "true";
