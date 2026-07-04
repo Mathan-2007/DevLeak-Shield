@@ -2,7 +2,7 @@
   "name": "dev-leak-shield",
   "displayName": "DevLeakShield",
   "description": "AI Prompt Firewall and Secret Detection for VS Code",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "icon": "images/icon.png",
   "publisher": "mathan0072007",
   "engines": {
